@@ -9,11 +9,15 @@ public class CubeSolver {
 
         List<String> allMoves = new ArrayList<>();
 
+        allMoves.addAll(solveFirstLayer(cube));
+        cube.syncToLists();
+
         allMoves.addAll(solveMiddleLayer(cube));
         cube.syncToLists();
 
         allMoves.addAll(solveLastLayer(cube));
         cube.syncToLists();
+
         return optimizeMoves(allMoves);
     }
 
