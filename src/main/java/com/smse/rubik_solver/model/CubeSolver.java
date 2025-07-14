@@ -62,6 +62,12 @@ public class CubeSolver {
 
         List<String> allMoves = new ArrayList<>();
 
+        allMoves.addAll(prepareForSolvingWhiteCross(cube));
+        cube.syncToLists();
+
+        allMoves.addAll(solveWhiteCross(cube));
+        cube.syncToLists();
+
         allMoves.addAll(prepareForSolvingCornersFirstLayer(cube));
         cube.syncToLists();
 
@@ -775,5 +781,154 @@ public class CubeSolver {
         }
         return moves;
 
+    }
+
+    public List<String> prepareForSolvingWhiteCross(Cube cube) {
+        List<String> moves = dfs(cube, new ArrayList<>(), 0, 8);
+        cube.makeMovesFromList(moves);
+        cube.syncToLists();
+        return (moves);
+    }
+
+    public List<String> solveWhiteCross(Cube cube) {
+        List<String> moves = new ArrayList<>();
+        while (!isWhiteCrossSolved(cube)) {
+            if (cube.getR()[2][1] == Color.R && cube.getY()[0][1] == Color.W) {
+                List<String> additional = Arrays.asList("F", "F");
+                moves.addAll(additional);
+                cube.makeMovesFromList(additional);
+                cube.syncToLists();
+            }
+            if (cube.getB()[2][1] == Color.B && cube.getY()[1][2] == Color.W) {
+                List<String> additional = Arrays.asList("R", "R");
+                moves.addAll(additional);
+                cube.makeMovesFromList(additional);
+                cube.syncToLists();
+            }
+            if (cube.getG()[2][1] == Color.G && cube.getY()[1][0] == Color.W) {
+                List<String> additional = Arrays.asList("L", "L");
+                moves.addAll(additional);
+                cube.makeMovesFromList(additional);
+                cube.syncToLists();
+            }
+            if (cube.getO()[2][1] == Color.O && cube.getY()[2][1] == Color.W) {
+                List<String> additional = Arrays.asList("B", "B");
+                moves.addAll(additional);
+                cube.makeMovesFromList(additional);
+                cube.syncToLists();
+            } else {
+                moves.add("D");
+                cube.moveD();
+                cube.syncToLists();
+            }
+        }
+        return moves;
+    }
+
+    private List<String> dfs(Cube cube, List<String> path, int depth, int maxDepth) {
+        if (isWhiteEdgesPrepared(cube)) {
+            return path;
+        }
+
+        if (depth >= maxDepth) {
+            return null;
+        }
+
+        List<String> moves = Arrays.asList("U", "U'", "D", "D'", "L", "L'", "R", "R'", "F", "F'", "B", "B'");
+
+        for (String move : moves) {
+            if (!isMoveAllowed(path, move)) {
+                continue;
+            }
+
+            Cube newCube = deepCopyCube(cube);
+            newCube.makeMovesFromList(Collections.singletonList(move));
+
+            List<String> newPath = new ArrayList<>(path);
+            newPath.add(move);
+
+            List<String> result = dfs(newCube, newPath, depth + 1, maxDepth);
+            if (result != null) {
+                return result;
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isMoveAllowed(List<String> path, String move) {
+        int size = path.size();
+
+        // Zakaz cofania ostatniego ruchu
+        if (size >= 1 && isOpposite(move, path.get(size - 1))) {
+            return false;
+        }
+
+        // Zakaz 3x tego samego ruchu pod rząd
+        if (size >= 2 && path.get(size - 1).equals(move) && path.get(size - 2).equals(move)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isOpposite(String move1, String move2) {
+        return move1.charAt(0) == move2.charAt(0) && move1.length() != move2.length();
+    }
+
+    private boolean isWhiteCrossSolved(Cube cube) {
+
+        return (cube.getW()[0][1] == Color.W && cube.getW()[1][0] == Color.W && cube.getW()[1][2] == Color.W
+                && cube.getW()[2][1] == Color.W && cube.getW()[1][1] == Color.W && cube.getR()[0][1] == Color.R
+                && cube.getB()[0][1] == Color.B && cube.getG()[0][1] == Color.G && cube.getO()[0][1] == Color.O);
+    }
+
+    private boolean isWhiteEdgesPrepared(Cube cube) {
+        // Krawędzie białe powinny być albo na żółtym środku, albo dobrze ułożone na
+        // białym
+        return getWhiteEdgeCountPrepared(cube) == 4;
+    }
+
+    private int getWhiteEdgeCountPrepared(Cube cube) {
+        int count = 0;
+        if (cube.getY()[2][1] == Color.W)
+            count++;
+        if (cube.getY()[1][2] == Color.W)
+            count++;
+        if (cube.getY()[1][0] == Color.W)
+            count++;
+        if (cube.getY()[0][1] == Color.W)
+            count++;
+
+        if (cube.getW()[0][1] == Color.W && cube.getO()[0][1] == Color.O)
+            count++;
+        if (cube.getW()[1][0] == Color.W && cube.getG()[0][1] == Color.G)
+            count++;
+        if (cube.getW()[1][2] == Color.W && cube.getB()[0][1] == Color.B)
+            count++;
+        if (cube.getW()[2][1] == Color.W && cube.getR()[0][1] == Color.R)
+            count++;
+
+        return Math.min(count, 4);
+    }
+
+    private Cube deepCopyCube(Cube original) {
+        Cube copy = new Cube();
+        copy.setUp(deepCopyFace(original.getUp()));
+        copy.setFront(deepCopyFace(original.getFront()));
+        copy.setBack(deepCopyFace(original.getBack()));
+        copy.setLeft(deepCopyFace(original.getLeft()));
+        copy.setRight(deepCopyFace(original.getRight()));
+        copy.setDown(deepCopyFace(original.getDown()));
+        copy.initArrays();
+        return copy;
+    }
+
+    private List<List<Color>> deepCopyFace(List<List<Color>> face) {
+        List<List<Color>> newFace = new ArrayList<>();
+        for (List<Color> row : face) {
+            newFace.add(new ArrayList<>(row));
+        }
+        return newFace;
     }
 }
