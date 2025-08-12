@@ -90,7 +90,7 @@ public class Cube {
         return face;
     }
 
-    private void printCube() {
+    public void printCube() {
         System.out.println("Up");
         printFace(W);
         System.out.println("Front");
@@ -114,7 +114,7 @@ public class Cube {
             "B", "B'"
     };
 
-    private boolean isCubeCompleted() {
+    public boolean isCubeCompleted() {
         return isFaceCompleted(W) && isFaceCompleted(R) && isFaceCompleted(B) && isFaceCompleted(G)
                 && isFaceCompleted(O)
                 && isFaceCompleted(Y);

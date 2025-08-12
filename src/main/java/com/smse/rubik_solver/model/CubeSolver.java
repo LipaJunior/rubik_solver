@@ -28,15 +28,19 @@ public class CubeSolver {
 
         allMoves.addAll(solveCrossOnLastLayer(cube));
         cube.syncToLists();
+        System.out.println("solveCrossOnLastLayer");
 
         allMoves.addAll(solveLastLayerPart2(cube));
         cube.syncToLists();
+        System.out.println("solveLastLayerPart2");
 
         allMoves.addAll(solveLastLayerPart3(cube));
         cube.syncToLists();
+        System.out.println("solveLastLayerPart3");
 
         allMoves.addAll(rotateEdges(cube));
         cube.syncToLists();
+        System.out.println("rotateEdges");
 
         return optimizeMoves(allMoves);
 
@@ -49,9 +53,11 @@ public class CubeSolver {
 
         allMoves.addAll(prepareForSolvingMiddleLayer(cube));
         cube.syncToLists();
+        System.out.println("prepareForSolvingMiddleLayer");
 
         allMoves.addAll(solveMiddleLayer1(cube));
         cube.syncToLists();
+        System.out.println("solveMiddleLayer1");
 
         return optimizeMoves(allMoves);
 
@@ -64,15 +70,19 @@ public class CubeSolver {
 
         allMoves.addAll(prepareForSolvingWhiteCross(cube));
         cube.syncToLists();
+        System.out.println("prepareForSolvingWhiteCross");
 
         allMoves.addAll(solveWhiteCross(cube));
         cube.syncToLists();
+        System.out.println("solveWhiteCross");
 
         allMoves.addAll(prepareForSolvingCornersFirstLayer(cube));
         cube.syncToLists();
+        System.out.println("prepareForSolvingCornersFirstLayer");
 
         allMoves.addAll(solveCornersFirstLayer(cube));
         cube.syncToLists();
+        System.out.println("solveCornersFirstLayer");
 
         return optimizeMoves(allMoves);
 
@@ -554,7 +564,7 @@ public class CubeSolver {
         if (color.equals(Color.G) && (g.contains(Color.Y))) {
             return true;
         }
-        if (color.equals(Color.O) && (o.contains(Color.O))) {
+        if (color.equals(Color.O) && (o.contains(Color.Y))) {
             return true;
         }
         return false;
@@ -678,7 +688,7 @@ public class CubeSolver {
                 moved = true;
             }
             if ((!(actualWRG.equals(WRG) || actualWRG.contains(Color.Y)))
-                    && (actualYRG.equals(WRG) || actualYRB.contains(Color.Y))) {
+                    && (actualYRG.equals(WRG) || actualYRG.contains(Color.Y))) {
                 List<String> additional = Arrays.asList("F'", "D'", "F");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
@@ -740,6 +750,15 @@ public class CubeSolver {
                     moved = true;
                 }
             }
+            actualWRB = EnumSet.of(cube.getW()[2][2], cube.getR()[0][2], cube.getB()[0][0]);
+            actualWRG = EnumSet.of(cube.getW()[2][0], cube.getR()[0][0], cube.getG()[0][2]);
+            actualWBO = EnumSet.of(cube.getW()[0][2], cube.getB()[0][2], cube.getO()[0][0]);
+            actualWGO = EnumSet.of(cube.getW()[0][0], cube.getG()[0][0], cube.getO()[0][2]);
+
+            actualYRB = EnumSet.of(cube.getY()[0][2], cube.getR()[2][2], cube.getB()[2][0]);
+            actualYRG = EnumSet.of(cube.getY()[0][0], cube.getR()[2][0], cube.getG()[2][2]);
+            actualYBO = EnumSet.of(cube.getY()[2][2], cube.getB()[2][2], cube.getO()[2][0]);
+            actualYGO = EnumSet.of(cube.getY()[2][0], cube.getG()[2][0], cube.getO()[2][2]);
             if (actualWRG.equals(WRG) || actualYRG.equals(WRG)) {
                 while (!(cube.getW()[2][0] == Color.W && cube.getR()[0][0] == Color.R
                         && cube.getG()[0][2] == Color.G)) {
@@ -751,6 +770,15 @@ public class CubeSolver {
                 }
 
             }
+            actualWRB = EnumSet.of(cube.getW()[2][2], cube.getR()[0][2], cube.getB()[0][0]);
+            actualWRG = EnumSet.of(cube.getW()[2][0], cube.getR()[0][0], cube.getG()[0][2]);
+            actualWBO = EnumSet.of(cube.getW()[0][2], cube.getB()[0][2], cube.getO()[0][0]);
+            actualWGO = EnumSet.of(cube.getW()[0][0], cube.getG()[0][0], cube.getO()[0][2]);
+
+            actualYRB = EnumSet.of(cube.getY()[0][2], cube.getR()[2][2], cube.getB()[2][0]);
+            actualYRG = EnumSet.of(cube.getY()[0][0], cube.getR()[2][0], cube.getG()[2][2]);
+            actualYBO = EnumSet.of(cube.getY()[2][2], cube.getB()[2][2], cube.getO()[2][0]);
+            actualYGO = EnumSet.of(cube.getY()[2][0], cube.getG()[2][0], cube.getO()[2][2]);
             if (actualWBO.equals(WBO) || actualYBO.equals(WBO)) {
                 while (!(cube.getW()[0][2] == Color.W && cube.getB()[0][2] == Color.B
                         && cube.getO()[0][0] == Color.O)) {
@@ -762,6 +790,15 @@ public class CubeSolver {
                 }
 
             }
+            actualWRB = EnumSet.of(cube.getW()[2][2], cube.getR()[0][2], cube.getB()[0][0]);
+            actualWRG = EnumSet.of(cube.getW()[2][0], cube.getR()[0][0], cube.getG()[0][2]);
+            actualWBO = EnumSet.of(cube.getW()[0][2], cube.getB()[0][2], cube.getO()[0][0]);
+            actualWGO = EnumSet.of(cube.getW()[0][0], cube.getG()[0][0], cube.getO()[0][2]);
+
+            actualYRB = EnumSet.of(cube.getY()[0][2], cube.getR()[2][2], cube.getB()[2][0]);
+            actualYRG = EnumSet.of(cube.getY()[0][0], cube.getR()[2][0], cube.getG()[2][2]);
+            actualYBO = EnumSet.of(cube.getY()[2][2], cube.getB()[2][2], cube.getO()[2][0]);
+            actualYGO = EnumSet.of(cube.getY()[2][0], cube.getG()[2][0], cube.getO()[2][2]);
             if (actualWGO.equals(WGO) || actualYGO.equals(WGO)) {
                 while (!(cube.getW()[0][0] == Color.W && cube.getG()[0][0] == Color.G
                         && cube.getO()[0][2] == Color.O)) {
@@ -773,6 +810,15 @@ public class CubeSolver {
                 }
 
             }
+            actualWRB = EnumSet.of(cube.getW()[2][2], cube.getR()[0][2], cube.getB()[0][0]);
+            actualWRG = EnumSet.of(cube.getW()[2][0], cube.getR()[0][0], cube.getG()[0][2]);
+            actualWBO = EnumSet.of(cube.getW()[0][2], cube.getB()[0][2], cube.getO()[0][0]);
+            actualWGO = EnumSet.of(cube.getW()[0][0], cube.getG()[0][0], cube.getO()[0][2]);
+
+            actualYRB = EnumSet.of(cube.getY()[0][2], cube.getR()[2][2], cube.getB()[2][0]);
+            actualYRG = EnumSet.of(cube.getY()[0][0], cube.getR()[2][0], cube.getG()[2][2]);
+            actualYBO = EnumSet.of(cube.getY()[2][2], cube.getB()[2][2], cube.getO()[2][0]);
+            actualYGO = EnumSet.of(cube.getY()[2][0], cube.getG()[2][0], cube.getO()[2][2]);
             if (!moved) {
                 moves.add("D");
                 cube.moveD();
@@ -792,36 +838,41 @@ public class CubeSolver {
 
     public List<String> solveWhiteCross(Cube cube) {
         List<String> moves = new ArrayList<>();
+
         while (!isWhiteCrossSolved(cube)) {
+            boolean moved = false;
+
             if (cube.getR()[2][1] == Color.R && cube.getY()[0][1] == Color.W) {
                 List<String> additional = Arrays.asList("F", "F");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
-            }
-            if (cube.getB()[2][1] == Color.B && cube.getY()[1][2] == Color.W) {
+                moved = true;
+            } else if (cube.getB()[2][1] == Color.B && cube.getY()[1][2] == Color.W) {
                 List<String> additional = Arrays.asList("R", "R");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
-            }
-            if (cube.getG()[2][1] == Color.G && cube.getY()[1][0] == Color.W) {
+                moved = true;
+            } else if (cube.getG()[2][1] == Color.G && cube.getY()[1][0] == Color.W) {
                 List<String> additional = Arrays.asList("L", "L");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
-            }
-            if (cube.getO()[2][1] == Color.O && cube.getY()[2][1] == Color.W) {
+                moved = true;
+            } else if (cube.getO()[2][1] == Color.O && cube.getY()[2][1] == Color.W) {
                 List<String> additional = Arrays.asList("B", "B");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
-            } else {
+                moved = true;
+            }
+
+            // Jeśli żaden warunek nie został spełniony, wykonaj D
+            if (!moved) {
                 moves.add("D");
                 cube.moveD();
-                cube.syncToLists();
             }
+
+            cube.syncToLists(); // synchronizuj po każdej pętli
         }
+
         return moves;
     }
 

@@ -65,6 +65,18 @@ public class CubeController {
         }
     }
 
+    @PostMapping("/test")
+    public ResponseEntity<Boolean> test(
+            @RequestBody int count,
+            @RequestParam(required = false) String sessionId) {
+        try {
+            boolean bool = cubeService.testSolutionIntegrity(count);
+            return ResponseEntity.ok(bool);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PostMapping("/move")
     public ResponseEntity<InitResponseDto> applyMoves(
             @RequestBody CubeMoveRequest request,
