@@ -864,13 +864,12 @@ public class CubeSolver {
                 moved = true;
             }
 
-            // Jeśli żaden warunek nie został spełniony, wykonaj D
             if (!moved) {
                 moves.add("D");
                 cube.moveD();
             }
 
-            cube.syncToLists(); // synchronizuj po każdej pętli
+            cube.syncToLists();
         }
 
         return moves;

@@ -145,6 +145,7 @@ public class CubeController {
             Cube cube = cubeService.initializeCube(request.getCube());
 
             if (!validationService.isCubeValid(cube)) {
+                System.out.println("Invalid cube");
                 return ResponseEntity.badRequest().build();
             }
 

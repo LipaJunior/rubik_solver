@@ -2,6 +2,7 @@ package com.smse.rubik_solver.service;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -12,7 +13,8 @@ import com.smse.rubik_solver.model.Cube;
 @Service
 public class ValidationService {
         public boolean isCubeValid(Cube cube) {
-                return (areCentersValid(cube) && areCornersValid(cube) && areEdgesValid(cube));
+                return (areCentersValid(cube) && areCornersValid(cube) && areEdgesValid(cube)
+                                && areCornerOrientationsValid(cube));
         }
 
         private boolean areCentersValid(Cube cube) {
@@ -145,6 +147,52 @@ public class ValidationService {
                 );
 
                 return actualEdges.equals(validEdges);
+        }
+
+        private boolean areCornerOrientationsValid(Cube cube) {
+
+                int sum = 0;
+
+                List<List<Color>> corners = List.of(
+                                // UFR
+                                List.of(cube.getUp().get(2).get(2), cube.getFront().get(0).get(2),
+                                                cube.getRight().get(0).get(0)),
+                                // URB
+                                List.of(cube.getUp().get(0).get(2), cube.getRight().get(0).get(2),
+                                                cube.getBack().get(0).get(0)),
+                                // UBL
+                                List.of(cube.getUp().get(0).get(0), cube.getBack().get(0).get(2),
+                                                cube.getLeft().get(0).get(0)),
+                                // ULF
+                                List.of(cube.getUp().get(2).get(0), cube.getLeft().get(0).get(2),
+                                                cube.getFront().get(0).get(0)),
+
+                                // DRF
+                                List.of(cube.getDown().get(0).get(2),
+                                                cube.getRight().get(2).get(0), cube.getFront().get(2).get(2)),
+                                // DBR
+                                List.of(cube.getDown().get(2).get(2), cube.getBack().get(2).get(0),
+                                                cube.getRight().get(2).get(2)),
+                                // DLB
+                                List.of(cube.getDown().get(2).get(0), cube.getLeft().get(2).get(0),
+                                                cube.getBack().get(2).get(2)),
+                                // DFL
+                                List.of(cube.getDown().get(0).get(0), cube.getFront().get(2).get(0),
+                                                cube.getLeft().get(2).get(2)));
+
+                for (List<Color> corner : corners) {
+
+                        // znajdź, gdzie jest W/Y
+                        for (int i = 0; i < 3; i++) {
+                                if (corner.get(i) == Color.W || corner.get(i) == Color.Y) {
+                                        sum += i;
+                                        break;
+                                }
+                        }
+                }
+
+                // warunek osiągalności: suma skręceń ≡ 0 (mod 3)
+                return (sum % 3 == 0);
         }
 
 }
