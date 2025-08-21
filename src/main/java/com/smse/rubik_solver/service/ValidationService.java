@@ -14,7 +14,7 @@ import com.smse.rubik_solver.model.Cube;
 public class ValidationService {
         public boolean isCubeValid(Cube cube) {
                 return (areCentersValid(cube) && areCornersValid(cube) && areEdgesValid(cube)
-                                && areCornerOrientationsValid(cube));
+                                && areCornerOrientationsValid(cube) && areEdgesOrientationsValid(cube));
         }
 
         private boolean areCentersValid(Cube cube) {
@@ -191,8 +191,73 @@ public class ValidationService {
                         }
                 }
 
-                // warunek osiągalności: suma skręceń ≡ 0 (mod 3)
+                // suma skręceń ≡ 0 (mod 3)
                 return (sum % 3 == 0);
+        }
+
+        private boolean areEdgesOrientationsValid(Cube cube) {
+
+                int sum = 0;
+
+                // UF
+                if (!(cube.getUp().get(2).get(1) == Color.W || cube.getUp().get(2).get(1) == Color.Y
+                                || cube.getFront().get(0).get(1) == Color.R
+                                || cube.getFront().get(0).get(1) == Color.O)) {
+                        sum += 1;
+                }
+                // UB
+                if (!(cube.getUp().get(0).get(1) == Color.W || cube.getUp().get(0).get(1) == Color.Y
+                                || cube.getBack().get(0).get(1) == Color.R
+                                || cube.getBack().get(0).get(1) == Color.O)) {
+                        sum += 1;
+                }
+                // DF
+                if (!(cube.getDown().get(0).get(1) == Color.W || cube.getDown().get(0).get(1) == Color.Y
+                                || cube.getFront().get(2).get(1) == Color.R
+                                || cube.getFront().get(2).get(1) == Color.O)) {
+                        sum += 1;
+                }
+                // DB
+                if (!(cube.getDown().get(2).get(1) == Color.W || cube.getDown().get(2).get(1) == Color.Y
+                                || cube.getBack().get(2).get(1) == Color.R
+                                || cube.getBack().get(2).get(1) == Color.O)) {
+                        sum += 1;
+                }
+                // UR
+                if (!(cube.getUp().get(1).get(2) == Color.W || cube.getUp().get(1).get(2) == Color.Y)) {
+                        sum += 1;
+                }
+                // UL
+                if (!(cube.getUp().get(1).get(0) == Color.W || cube.getUp().get(1).get(0) == Color.Y)) {
+                        sum += 1;
+                }
+                // DR
+                if (!(cube.getDown().get(1).get(2) == Color.W || cube.getDown().get(1).get(2) == Color.Y)) {
+                        sum += 1;
+                }
+                // DL
+                if (!(cube.getDown().get(1).get(0) == Color.W || cube.getDown().get(1).get(0) == Color.Y)) {
+                        sum += 1;
+                }
+                // FR
+                if (!(cube.getFront().get(1).get(2) == Color.R || cube.getFront().get(1).get(2) == Color.O)) {
+                        sum += 1;
+                }
+                // FL
+                if (!(cube.getFront().get(1).get(0) == Color.R || cube.getFront().get(1).get(0) == Color.O)) {
+                        sum += 1;
+                }
+                // BR
+                if (!(cube.getBack().get(1).get(0) == Color.R || cube.getBack().get(1).get(0) == Color.O)) {
+                        sum += 1;
+                }
+                // BL
+                if (!(cube.getBack().get(1).get(2) == Color.R || cube.getBack().get(1).get(2) == Color.O)) {
+                        sum += 1;
+                }
+
+                return (sum % 2 == 0);
+
         }
 
 }
