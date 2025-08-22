@@ -1,8 +1,11 @@
 package com.smse.rubik_solver.service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -14,7 +17,8 @@ import com.smse.rubik_solver.model.Cube;
 public class ValidationService {
         public boolean isCubeValid(Cube cube) {
                 return (areCentersValid(cube) && areCornersValid(cube) && areEdgesValid(cube)
-                                && areCornerOrientationsValid(cube) && areEdgesOrientationsValid(cube));
+                                && areCornerOrientationsValid(cube) && areEdgesOrientationsValid(cube)
+                                && checkParity(cube));
         }
 
         private boolean areCentersValid(Cube cube) {
@@ -182,7 +186,6 @@ public class ValidationService {
 
                 for (List<Color> corner : corners) {
 
-                        // znajdź, gdzie jest W/Y
                         for (int i = 0; i < 3; i++) {
                                 if (corner.get(i) == Color.W || corner.get(i) == Color.Y) {
                                         sum += i;
@@ -191,7 +194,6 @@ public class ValidationService {
                         }
                 }
 
-                // suma skręceń ≡ 0 (mod 3)
                 return (sum % 3 == 0);
         }
 
@@ -258,6 +260,155 @@ public class ValidationService {
 
                 return (sum % 2 == 0);
 
+        }
+
+        private int cornerParity(Cube cube) {
+                Map<Set<Color>, Integer> validCorners = new HashMap<>();
+                validCorners.put(Set.of(Color.W, Color.R, Color.G), 0); // UFL
+                validCorners.put(Set.of(Color.W, Color.R, Color.B), 1); // UFR
+                validCorners.put(Set.of(Color.W, Color.O, Color.B), 2); // UBR
+                validCorners.put(Set.of(Color.W, Color.O, Color.G), 3); // UBL
+                validCorners.put(Set.of(Color.Y, Color.R, Color.G), 4); // DFL
+                validCorners.put(Set.of(Color.Y, Color.R, Color.B), 5); // DFR
+                validCorners.put(Set.of(Color.Y, Color.O, Color.B), 6); // DBR
+                validCorners.put(Set.of(Color.Y, Color.O, Color.G), 7); // DBL
+
+                List<Set<Color>> actualCorners = new ArrayList<>();
+                // U-F-L
+                actualCorners.add(Set.of(
+                                cube.getFront().get(0).get(0),
+                                cube.getLeft().get(0).get(2),
+                                cube.getUp().get(2).get(0)));
+                // U-F-R
+                actualCorners.add(Set.of(
+                                cube.getFront().get(0).get(2),
+                                cube.getRight().get(0).get(0),
+                                cube.getUp().get(2).get(2)));
+                // U-B-R
+                actualCorners.add(Set.of(
+                                cube.getBack().get(0).get(0),
+                                cube.getRight().get(0).get(2),
+                                cube.getUp().get(0).get(2)));
+                // U-B-L
+                actualCorners.add(Set.of(
+                                cube.getBack().get(0).get(2),
+                                cube.getLeft().get(0).get(0),
+                                cube.getUp().get(0).get(0)));
+                // D-F-L
+                actualCorners.add(Set.of(
+                                cube.getFront().get(2).get(0),
+                                cube.getLeft().get(2).get(2),
+                                cube.getDown().get(0).get(0)));
+                // D-F-R
+                actualCorners.add(Set.of(
+                                cube.getFront().get(2).get(2),
+                                cube.getRight().get(2).get(0),
+                                cube.getDown().get(0).get(2)));
+                // D-B-R
+                actualCorners.add(Set.of(
+                                cube.getBack().get(2).get(0),
+                                cube.getRight().get(2).get(2),
+                                cube.getDown().get(2).get(2)));
+                // D-B-L
+                actualCorners.add(Set.of(
+                                cube.getBack().get(2).get(2),
+                                cube.getLeft().get(2).get(0),
+                                cube.getDown().get(2).get(0)));
+
+                List<Integer> perm = new ArrayList<>(8);
+                for (Set<Color> corner : actualCorners) {
+                        Integer idx = validCorners.get(corner);
+                        if (idx == null)
+                                return -1;
+                        perm.add(idx);
+                }
+
+                int cycles = cycleCount(perm);
+                if (cycles < 0)
+                        return -1;
+                return (8 - cycles) & 1; // parzystość 0=parzysta, 1=nieparzysta
+        }
+
+        private int edgeParity(Cube cube) {
+                Map<Set<Color>, Integer> validEdges = new HashMap<>();
+
+                validEdges.put(Set.of(Color.W, Color.R), 0); // U–F
+                validEdges.put(Set.of(Color.W, Color.B), 1); // U–R
+                validEdges.put(Set.of(Color.W, Color.O), 2); // U–B
+                validEdges.put(Set.of(Color.W, Color.G), 3); // U–L
+                validEdges.put(Set.of(Color.Y, Color.R), 4); // D–F
+                validEdges.put(Set.of(Color.Y, Color.B), 5); // D–R
+                validEdges.put(Set.of(Color.Y, Color.O), 6); // D–B
+                validEdges.put(Set.of(Color.Y, Color.G), 7); // D–L
+                validEdges.put(Set.of(Color.R, Color.B), 8); // F–R
+                validEdges.put(Set.of(Color.B, Color.O), 9); // R–B
+                validEdges.put(Set.of(Color.O, Color.G), 10); // B–L
+                validEdges.put(Set.of(Color.G, Color.R), 11); // L–F
+
+                List<Set<Color>> actualEdges = new ArrayList<>();
+                // up
+                actualEdges.add(Set.of(cube.getUp().get(2).get(1), cube.getFront().get(0).get(1))); // U–F
+                actualEdges.add(Set.of(cube.getUp().get(1).get(2), cube.getRight().get(0).get(1))); // U–R
+                actualEdges.add(Set.of(cube.getUp().get(0).get(1), cube.getBack().get(0).get(1))); // U–B
+                actualEdges.add(Set.of(cube.getUp().get(1).get(0), cube.getLeft().get(0).get(1))); // U–L
+                // down
+                actualEdges.add(Set.of(cube.getDown().get(0).get(1), cube.getFront().get(2).get(1))); // D–F
+                actualEdges.add(Set.of(cube.getDown().get(1).get(2), cube.getRight().get(2).get(1))); // D–R
+                actualEdges.add(Set.of(cube.getDown().get(2).get(1), cube.getBack().get(2).get(1))); // D–B
+                actualEdges.add(Set.of(cube.getDown().get(1).get(0), cube.getLeft().get(2).get(1))); // D–L
+                // middle
+                actualEdges.add(Set.of(cube.getFront().get(1).get(2), cube.getRight().get(1).get(0))); // F–R
+                actualEdges.add(Set.of(cube.getRight().get(1).get(2), cube.getBack().get(1).get(0))); // R–B
+                actualEdges.add(Set.of(cube.getBack().get(1).get(2), cube.getLeft().get(1).get(0))); // B–L
+                actualEdges.add(Set.of(cube.getLeft().get(1).get(2), cube.getFront().get(1).get(0))); // L–F
+
+                List<Integer> perm = new ArrayList<>(12);
+                for (Set<Color> edge : actualEdges) {
+                        Integer idx = validEdges.get(edge);
+                        if (idx == null)
+                                return -1;
+                        perm.add(idx);
+                }
+
+                int cycles = cycleCount(perm);
+                if (cycles < 0)
+                        return -1;
+                return (12 - cycles) & 1; // 0=parzysta, 1=nieparzysta
+        }
+
+        private boolean checkParity(Cube cube) {
+                int cp = cornerParity(cube);
+                int ep = edgeParity(cube);
+                if (cp < 0 || ep < 0)
+                        return false;
+                return cp == ep; // warunek legalności: parzystości muszą być równe
+        }
+
+        private int cycleCount(List<Integer> perm) {
+                int n = perm.size();
+                boolean[] seen = new boolean[n];
+
+                for (int idx : perm) {
+                        if (idx < 0 || idx >= n)
+                                return -1;
+                        if (seen[idx])
+                                return -1;
+                        seen[idx] = true;
+                }
+
+                int cycles = 0;
+                boolean[] vis = new boolean[n];
+                for (int i = 0; i < n; i++) {
+                        if (!vis[i]) {
+                                cycles++;
+                                int j = i;
+                                while (!vis[j]) {
+                                        vis[j] = true;
+                                        j = perm.get(j);
+                                }
+                        }
+                }
+                return cycles;
         }
 
 }
