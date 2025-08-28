@@ -12,6 +12,8 @@ import com.smse.rubik_solver.model.CubeSolver;
 @Service
 public class CubeService {
 
+    private final ValidationService validationService = new ValidationService();
+
     public Cube initializeCube(Cube cube) {
         cube.initArrays();
         return cube;
@@ -61,15 +63,17 @@ public class CubeService {
             // 1. Stwórz losową kostkę
             Cube randomCube = createSolvedCube();
             getRandomScramble(randomCube, 20);
-            System.out.println();
-            randomCube.printCube();
+
+            if (!validationService.isCubeValid(randomCube)) {
+                System.out.println("Invalid scrambled cube");
+                return false;
+            }
 
             // Skopiuj stan początkowy kostki
             Cube originalCube = deepCopyCube(randomCube);
 
             // 2. Rozwiąż ją
             List<String> solutionMoves = solve(randomCube);
-            System.out.println(solutionMoves);
 
             // 3. Zastosuj ruchy do oryginalnej kostki
             applyMoves(originalCube, solutionMoves);
