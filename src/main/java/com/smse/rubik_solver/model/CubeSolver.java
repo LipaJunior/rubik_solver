@@ -28,19 +28,19 @@ public class CubeSolver {
 
         allMoves.addAll(solveCrossOnLastLayer(cube));
         cube.syncToLists();
-        System.out.println("solveCrossOnLastLayer");
+        //System.out.println("solveCrossOnLastLayer");
 
         allMoves.addAll(solveLastLayerPart2(cube));
         cube.syncToLists();
-        System.out.println("solveLastLayerPart2");
+        //System.out.println("solveLastLayerPart2");
 
         allMoves.addAll(solveLastLayerPart3(cube));
         cube.syncToLists();
-        System.out.println("solveLastLayerPart3");
+        //System.out.println("solveLastLayerPart3");
 
         allMoves.addAll(rotateEdges(cube));
         cube.syncToLists();
-        System.out.println("rotateEdges");
+        //System.out.println("rotateEdges");
 
         return optimizeMoves(allMoves);
 
@@ -53,11 +53,11 @@ public class CubeSolver {
 
         allMoves.addAll(prepareForSolvingMiddleLayer(cube));
         cube.syncToLists();
-        System.out.println("prepareForSolvingMiddleLayer");
+        //ystem.out.println("prepareForSolvingMiddleLayer");
 
         allMoves.addAll(solveMiddleLayer1(cube));
         cube.syncToLists();
-        System.out.println("solveMiddleLayer1");
+        //System.out.println("solveMiddleLayer1");
 
         return optimizeMoves(allMoves);
 
@@ -70,19 +70,19 @@ public class CubeSolver {
 
         allMoves.addAll(prepareForSolvingWhiteCross(cube));
         cube.syncToLists();
-        System.out.println("prepareForSolvingWhiteCross");
+        //System.out.println("prepareForSolvingWhiteCross");
 
         allMoves.addAll(solveWhiteCross(cube));
         cube.syncToLists();
-        System.out.println("solveWhiteCross");
+        //System.out.println("solveWhiteCross");
 
         allMoves.addAll(prepareForSolvingCornersFirstLayer(cube));
         cube.syncToLists();
-        System.out.println("prepareForSolvingCornersFirstLayer");
+        //System.out.println("prepareForSolvingCornersFirstLayer");
 
         allMoves.addAll(solveCornersFirstLayer(cube));
         cube.syncToLists();
-        System.out.println("solveCornersFirstLayer");
+        //System.out.println("solveCornersFirstLayer");
 
         return optimizeMoves(allMoves);
 
