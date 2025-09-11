@@ -10,10 +10,10 @@ public class CubeSolver {
         List<String> allMoves = new ArrayList<>();
 
         allMoves.addAll(solveFirstLayer(cube));
-        cube.syncToLists();
+        // cube.syncToLists();
 
         allMoves.addAll(solveMiddleLayer(cube));
-        cube.syncToLists();
+        // cube.syncToLists();
 
         allMoves.addAll(solveLastLayer(cube));
         cube.syncToLists();
@@ -22,69 +22,70 @@ public class CubeSolver {
     }
 
     public List<String> solveLastLayer(Cube cube) {
-        cube.initArrays();
+        // cube.initArrays();
 
         List<String> allMoves = new ArrayList<>();
 
         allMoves.addAll(solveCrossOnLastLayer(cube));
-        cube.syncToLists();
-        //System.out.println("solveCrossOnLastLayer");
+        // cube.syncToLists();
+        // System.out.println("solveCrossOnLastLayer");
 
         allMoves.addAll(solveLastLayerPart2(cube));
-        cube.syncToLists();
-        //System.out.println("solveLastLayerPart2");
+        // cube.syncToLists();
+        // System.out.println("solveLastLayerPart2");
 
         allMoves.addAll(solveLastLayerPart3(cube));
-        cube.syncToLists();
-        //System.out.println("solveLastLayerPart3");
+        // cube.syncToLists();
+        // System.out.println("solveLastLayerPart3");
 
         allMoves.addAll(rotateEdges(cube));
-        cube.syncToLists();
-        //System.out.println("rotateEdges");
+        // cube.syncToLists();
+        // System.out.println("rotateEdges");
 
-        return optimizeMoves(allMoves);
+        return allMoves;
+        // return optimizeMoves(allMoves);
 
     }
 
     public List<String> solveMiddleLayer(Cube cube) {
-        cube.initArrays();
+        // cube.initArrays();
 
         List<String> allMoves = new ArrayList<>();
 
         allMoves.addAll(prepareForSolvingMiddleLayer(cube));
-        cube.syncToLists();
-        //ystem.out.println("prepareForSolvingMiddleLayer");
+        // cube.syncToLists();
+        // ystem.out.println("prepareForSolvingMiddleLayer");
 
         allMoves.addAll(solveMiddleLayer1(cube));
-        cube.syncToLists();
-        //System.out.println("solveMiddleLayer1");
-
-        return optimizeMoves(allMoves);
+        // cube.syncToLists();
+        // System.out.println("solveMiddleLayer1");
+        return allMoves;
+        // return optimizeMoves(allMoves);
 
     }
 
     public List<String> solveFirstLayer(Cube cube) {
-        cube.initArrays();
+        // cube.initArrays();
 
         List<String> allMoves = new ArrayList<>();
 
         allMoves.addAll(prepareForSolvingWhiteCross(cube));
-        cube.syncToLists();
-        //System.out.println("prepareForSolvingWhiteCross");
+        // cube.syncToLists();
+        // System.out.println("prepareForSolvingWhiteCross");
 
         allMoves.addAll(solveWhiteCross(cube));
-        cube.syncToLists();
-        //System.out.println("solveWhiteCross");
+        // cube.syncToLists();
+        // System.out.println("solveWhiteCross");
 
         allMoves.addAll(prepareForSolvingCornersFirstLayer(cube));
-        cube.syncToLists();
-        //System.out.println("prepareForSolvingCornersFirstLayer");
+        // cube.syncToLists();
+        // System.out.println("prepareForSolvingCornersFirstLayer");
 
         allMoves.addAll(solveCornersFirstLayer(cube));
-        cube.syncToLists();
-        //System.out.println("solveCornersFirstLayer");
-
-        return optimizeMoves(allMoves);
+        // cube.syncToLists();
+        // System.out.println("solveCornersFirstLayer");
+        return allMoves;
+        // return optimizeMoves(allMoves);
 
     }
 
@@ -233,7 +234,7 @@ public class CubeSolver {
         }
 
         cube.makeMovesFromList(additionalMoves);
-        cube.syncToLists();
+        // cube.syncToLists();
         moves.addAll(additionalMoves);
         return moves;
     }
@@ -250,7 +251,7 @@ public class CubeSolver {
         while (count == 0 && tries < 4) {
             additionalMoves = Arrays.asList("D", "L", "D'", "R'", "D", "L'", "D'", "R");
             cube.makeMovesFromList(additionalMoves);
-            cube.syncToLists();
+            // cube.syncToLists();
             moves.addAll(additionalMoves);
             count = whichCornersAreInPlace(cube).size();
             tries++;
@@ -279,7 +280,7 @@ public class CubeSolver {
             }
 
             cube.makeMovesFromList(additionalMoves);
-            cube.syncToLists();
+            // cube.syncToLists();
             moves.addAll(additionalMoves);
             count = whichCornersAreInPlace(cube).size();
         }
@@ -325,14 +326,14 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "R'", "D", "R", "D", "F", "D'", "F'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
                 if (r.equals(gr)) {
                     List<String> additional = Arrays.asList("D", "L", "D'", "L'", "D'", "F'", "D", "F");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
             }
@@ -343,14 +344,14 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "B'", "D", "B", "D", "R", "D'", "R'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
                 if (b.equals(br)) {
                     List<String> additional = Arrays.asList("D", "F", "D'", "F'", "D'", "R'", "D", "R");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
             }
@@ -361,14 +362,14 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "F'", "D", "F", "D", "L", "D'", "L'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
                 if (g.equals(go)) {
                     List<String> additional = Arrays.asList("D", "B", "D'", "B'", "D'", "L'", "D", "L");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
             }
@@ -379,14 +380,14 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "L'", "D", "L", "D", "B", "D'", "B'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
                 if (o.equals(bo)) {
                     List<String> additional = Arrays.asList("D", "R", "D'", "R'", "D'", "B'", "D", "B");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
             }
@@ -412,13 +413,13 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "R'", "D", "R", "D", "F", "D'", "F'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 } else if (isEdgeOnCorrectPlaceForPreparingForMiddleLayer(cube, Color.B)) {
                     List<String> additional = Arrays.asList("D", "F", "D'", "F'", "D'", "R'", "D", "R");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
             }
@@ -428,13 +429,13 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "B'", "D", "B", "D", "R", "D'", "R'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 } else if (isEdgeOnCorrectPlaceForPreparingForMiddleLayer(cube, Color.O)) {
                     List<String> additional = Arrays.asList("D", "R", "D'", "R'", "D'", "B'", "D", "B");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
             }
@@ -444,13 +445,13 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "L'", "D", "L", "D", "B", "D'", "B'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 } else if (isEdgeOnCorrectPlaceForPreparingForMiddleLayer(cube, Color.G)) {
                     List<String> additional = Arrays.asList("D", "B", "D'", "B'", "D'", "L'", "D", "L");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
             }
@@ -460,13 +461,13 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D", "L", "D'", "L'", "D'", "F'", "D", "F");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 } else if (isEdgeOnCorrectPlaceForPreparingForMiddleLayer(cube, Color.G)) {
                     List<String> additional = Arrays.asList("D'", "F'", "D", "F", "D", "L", "D'", "L'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
             }
@@ -684,7 +685,7 @@ public class CubeSolver {
                 List<String> additional = Arrays.asList("R'", "D'", "R");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
+                // cube.syncToLists();
                 moved = true;
             }
             if ((!(actualWRG.equals(WRG) || actualWRG.contains(Color.Y)))
@@ -692,7 +693,7 @@ public class CubeSolver {
                 List<String> additional = Arrays.asList("F'", "D'", "F");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
+                // cube.syncToLists();
                 moved = true;
             }
             if ((!(actualWBO.equals(WBO) || actualWBO.contains(Color.Y)))
@@ -700,7 +701,7 @@ public class CubeSolver {
                 List<String> additional = Arrays.asList("B'", "D'", "B");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
+                // cube.syncToLists();
                 moved = true;
             }
             if ((!(actualWGO.equals(WGO) || actualWGO.contains(Color.Y)))
@@ -708,7 +709,7 @@ public class CubeSolver {
                 List<String> additional = Arrays.asList("L'", "D'", "L");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
+                // cube.syncToLists();
                 moved = true;
             }
             if (!moved) {
@@ -746,7 +747,7 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("F", "D", "F'", "D'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
             }
@@ -765,7 +766,7 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("L", "D", "L'", "D'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
 
@@ -785,7 +786,7 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("R", "D", "R'", "D'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
 
@@ -805,7 +806,7 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("B", "D", "B'", "D'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
 
@@ -832,7 +833,7 @@ public class CubeSolver {
     public List<String> prepareForSolvingWhiteCross(Cube cube) {
         List<String> moves = dfs(cube, new ArrayList<>(), 0, 8);
         cube.makeMovesFromList(moves);
-        cube.syncToLists();
+        // cube.syncToLists();
         return (moves);
     }
 
@@ -867,9 +868,10 @@ public class CubeSolver {
             if (!moved) {
                 moves.add("D");
                 cube.moveD();
+                cube.syncToLists();
             }
 
-            cube.syncToLists();
+            // cube.syncToLists();
         }
 
         return moves;

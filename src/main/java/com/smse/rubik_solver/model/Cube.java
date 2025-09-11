@@ -188,7 +188,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             O[2 - i][0] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveRprim() {
@@ -210,7 +210,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             R[i][2] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveL() {
@@ -232,7 +232,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             R[i][0] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveLprim() {
@@ -254,7 +254,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             O[2 - i][2] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveU() {
@@ -276,7 +276,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             G[0][i] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveUprim() {
@@ -298,7 +298,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             B[0][i] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveF() {
@@ -319,7 +319,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             B[i][0] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveFprim() {
@@ -340,7 +340,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             G[i][2] = temp[2 - i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveD() {
@@ -361,7 +361,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             B[2][i] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveDprim() {
@@ -382,7 +382,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             G[2][i] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveB() {
@@ -403,7 +403,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             G[2 - i][0] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void moveBprim() {
@@ -424,7 +424,7 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             B[i][2] = temp[i];
         }
-        syncToLists();
+        // syncToLists();
     }
 
     void sexyMove() {
@@ -481,6 +481,7 @@ public class Cube {
                     System.out.println("Unknown move: " + move);
             }
         }
+        syncToLists();
     }
 
     private static List<String> getRandomMoves(int n) {
