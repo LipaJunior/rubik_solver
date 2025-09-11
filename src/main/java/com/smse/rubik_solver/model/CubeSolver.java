@@ -960,7 +960,9 @@ public class CubeSolver {
             return null;
         }
 
-        List<String> moves = Arrays.asList("U", "U'", "D", "D'", "L", "L'", "R", "R'", "F", "F'", "B", "B'");
+        List<String> moves = Arrays.asList(
+                "U", "D", "R", "L", "F", "B",
+                "U'", "D'", "R'", "L'", "F'", "B'");
 
         for (String move : moves) {
             if (!isMoveAllowed(path, move)) {
