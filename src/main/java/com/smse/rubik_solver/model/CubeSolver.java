@@ -95,28 +95,102 @@ public class CubeSolver {
         for (String move : moves) {
             if (!stack.isEmpty()) {
                 String top = stack.peek();
+
+                // Sprawdź czy ruch anuluje się z poprzednim
                 if (isInverse(top, move)) {
-                    stack.pop(); // Cancel inverse moves
-                } else if (top.equals(move)) {
+                    stack.pop(); // Anuluj przeciwne ruchy
+                    continue;
+                }
+                // Sprawdź czy to ten sam ruch (dla optymalizacji 2/3 ruchów)
+                else if (top.equals(move)) {
                     stack.pop();
                     if (!stack.isEmpty() && stack.peek().equals(move)) {
-                        // Three same moves -> cancel all three and add inverse
+                        // Trzy takie same ruchy -> zamień na jeden przeciwny
                         stack.pop();
                         stack.push(getInverse(move));
                     } else {
-                        // Two same moves -> store them temporarily
+                        // Dwa takie same ruchy -> tymczasowo przechowaj
                         stack.push(move);
                         stack.push(move);
                     }
-                } else {
-                    stack.push(move);
+                    continue;
                 }
-            } else {
-                stack.push(move);
             }
+
+            stack.push(move);
+
+            // Sprawdź czy można zoptymalizować sekwencje (tylko dla n > 3)
+            optimizeSequences(stack);
         }
 
         return new ArrayList<>(stack);
+    }
+
+    private void optimizeSequences(Stack<String> stack) {
+        if (stack.size() < 4)
+            return;
+
+        // Sprawdź wszystkie możliwe sekwencje
+        String[] firstMoves = { "F", "L", "R", "B" };
+        String secondMove = "D";
+
+        for (String firstMove : firstMoves) {
+            int repeatCount = countSequenceRepetitions(stack, firstMove, secondMove);
+
+            // TYLKO dla n > 3
+            if (repeatCount > 3) {
+                optimizeSequenceRepetition(stack, firstMove, secondMove, repeatCount);
+                return; // Po znalezieniu i optymalizacji jednej sekwencji, wyjdź
+            }
+        }
+    }
+
+    private int countSequenceRepetitions(Stack<String> stack, String first, String second) {
+        int count = 0;
+        int stackSize = stack.size();
+
+        while (stackSize >= (count + 1) * 4) {
+            // Sprawdź czy następne 4 ruchy to ta sama sekwencja
+            int baseIndex = stackSize - 1 - count * 4;
+            String m4 = stack.get(baseIndex);
+            String m3 = stack.get(baseIndex - 1);
+            String m2 = stack.get(baseIndex - 2);
+            String m1 = stack.get(baseIndex - 3);
+
+            if (isSequence(m1, m2, m3, m4, first, second)) {
+                count++;
+            } else {
+                break;
+            }
+        }
+
+        return count;
+    }
+
+    private void optimizeSequenceRepetition(Stack<String> stack, String first, String second, int repeatCount) {
+        // n > 3: zamień na (6-n) powtórzeń przeciwnej sekwencji
+        int optimizedCount = 6 - repeatCount;
+
+        // Usuń wszystkie powtórzenia
+        for (int i = 0; i < repeatCount * 4; i++) {
+            stack.pop();
+        }
+
+        // Dodaj zoptymalizowaną sekwencję
+        if (optimizedCount > 0) {
+            for (int i = 0; i < optimizedCount; i++) {
+                stack.push(second);
+                stack.push(first);
+                stack.push(getInverse(second));
+                stack.push(getInverse(first));
+            }
+        }
+    }
+
+    private boolean isSequence(String m1, String m2, String m3, String m4, String first, String second) {
+        // Sprawdź sekwencję X D X' D'
+        return (m1.equals(first) && m2.equals(second) &&
+                m3.equals(getInverse(first)) && m4.equals(getInverse(second)));
     }
 
     private boolean isInverse(String move1, String move2) {
