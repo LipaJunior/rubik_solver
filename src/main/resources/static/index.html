@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubik's Cube Solver</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧩 Rubik's Cube Solver</h1>
+            <p>Interaktywny solver kostki Rubika</p>
+        </header>
+
+        <div class="cube-container">
+            <!-- Kostka w układzie net (rozwinięcie) -->
+            <div class="cube-net">
+                <!-- Górna ścianka (Up) -->
+                <div class="face up-face">
+                    <div class="face-label">UP</div>
+                    <div class="face-grid" id="up-face">
+                        <!-- Będzie wypełnione przez JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Lewa ścianka (Left) -->
+                <div class="face left-face">
+                    <div class="face-label">LEFT</div>
+                    <div class="face-grid" id="left-face">
+                        <!-- Będzie wypełnione przez JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Przednia ścianka (Front) -->
+                <div class="face front-face">
+                    <div class="face-label">FRONT</div>
+                    <div class="face-grid" id="front-face">
+                        <!-- Będzie wypełnione przez JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Prawa ścianka (Right) -->
+                <div class="face right-face">
+                    <div class="face-label">RIGHT</div>
+                    <div class="face-grid" id="right-face">
+                        <!-- Będzie wypełnione przez JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Tylna ścianka (Back) -->
+                <div class="face back-face">
+                    <div class="face-label">BACK</div>
+                    <div class="face-grid" id="back-face">
+                        <!-- Będzie wypełnione przez JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Dolna ścianka (Down) -->
+                <div class="face down-face">
+                    <div class="face-label">DOWN</div>
+                    <div class="face-grid" id="down-face">
+                        <!-- Będzie wypełnione przez JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kontrolki -->
+        <div class="controls">
+            <div class="control-group">
+                <h3>Ruchy kostki</h3>
+                <div class="move-buttons">
+                    <button class="move-btn" data-move="R">R</button>
+                    <button class="move-btn" data-move="R'">R'</button>
+                    <button class="move-btn" data-move="L">L</button>
+                    <button class="move-btn" data-move="L'">L'</button>
+                    <button class="move-btn" data-move="U">U</button>
+                    <button class="move-btn" data-move="U'">U'</button>
+                    <button class="move-btn" data-move="D">D</button>
+                    <button class="move-btn" data-move="D'">D'</button>
+                    <button class="move-btn" data-move="F">F</button>
+                    <button class="move-btn" data-move="F'">F'</button>
+                    <button class="move-btn" data-move="B">B</button>
+                    <button class="move-btn" data-move="B'">B'</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Akcje</h3>
+                <div class="action-buttons">
+                    <button id="scramble-btn" class="action-btn scramble">🔀 Scramble</button>
+                    <button id="solve-btn" class="action-btn solve">🧩 Solve</button>
+                    <button id="reset-btn" class="action-btn reset">🔄 Reset</button>
+                    <button id="random-btn" class="action-btn random">🎲 Random</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Rozwiązanie</h3>
+                <div id="solution-container" class="solution-container">
+                    <div id="solution-moves" class="solution-moves"></div>
+                    <div class="solution-controls">
+                        <button id="play-solution-btn" class="action-btn play" disabled>▶️ Play Solution</button>
+                        <button id="step-solution-btn" class="action-btn step" disabled>⏭️ Next Step</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="status">
+            <div id="status-message" class="status-message">Gotowy do gry!</div>
+            <div id="session-info" class="session-info"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
