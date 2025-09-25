@@ -193,6 +193,91 @@ header p {
 .random { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 .play { background: linear-gradient(135deg, #f39c12, #e67e22); }
 .step { background: linear-gradient(135deg, #1abc9c, #16a085); }
+.paint-mode { background: linear-gradient(135deg, #e67e22, #d35400); }
+.paint-mode.active { background: linear-gradient(135deg, #c0392b, #a93226); }
+.done { background: linear-gradient(135deg, #28a745, #20c997); }
+
+/* Kontrolki fazy mieszania */
+.scramble-phase-controls {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.scramble-phase-controls .action-btn {
+    width: 100%;
+    font-size: 1rem;
+    padding: 15px;
+}
+
+/* Kontrolki malowania */
+.paint-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.color-picker {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    border: 3px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #2c3e50;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.color-option.selected {
+    border-color: #2c3e50;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px #3498db;
+}
+
+.paint-info {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.paint-info p {
+    margin: 5px 0;
+}
+
+#selected-color {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Tryb malowania - podświetlenie kwadracików */
+.paint-mode-active .cube-square {
+    cursor: crosshair;
+    border: 2px solid #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+}
+
+.paint-mode-active .cube-square:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.8);
+}
 
 .action-btn:hover {
     transform: translateY(-2px);

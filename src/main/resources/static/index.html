@@ -68,7 +68,7 @@
 
         <!-- Kontrolki -->
         <div class="controls">
-            <div class="control-group">
+            <div class="control-group" id="move-controls" style="display: none;">
                 <h3>Ruchy kostki</h3>
                 <div class="move-buttons">
                     <button class="move-btn" data-move="R">R</button>
@@ -84,15 +84,37 @@
                     <button class="move-btn" data-move="B">B</button>
                     <button class="move-btn" data-move="B'">B'</button>
                 </div>
+                <div class="scramble-phase-controls">
+                    <button id="done-scrambling-btn" class="action-btn done">✅ Gotowe - Rozwiąż kostkę</button>
+                </div>
             </div>
 
             <div class="control-group">
                 <h3>Akcje</h3>
                 <div class="action-buttons">
-                    <button id="scramble-btn" class="action-btn scramble">🔀 Scramble</button>
-                    <button id="solve-btn" class="action-btn solve">🧩 Solve</button>
+                    <button id="scramble-btn" class="action-btn scramble">🔀 Rozpocznij mieszanie</button>
+                    <button id="solve-btn" class="action-btn solve" style="display: none;">🧩 Solve</button>
                     <button id="reset-btn" class="action-btn reset">🔄 Reset</button>
                     <button id="random-btn" class="action-btn random">🎲 Random</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Malowanie kostki</h3>
+                <div class="paint-controls">
+                    <button id="paint-mode-btn" class="action-btn paint-mode">🎨 Tryb malowania</button>
+                    <div class="color-picker" id="color-picker" style="display: none;">
+                        <div class="color-option" data-color="W" style="background-color: #ffffff;">W</div>
+                        <div class="color-option" data-color="R" style="background-color: #e74c3c;">R</div>
+                        <div class="color-option" data-color="B" style="background-color: #3498db;">B</div>
+                        <div class="color-option" data-color="G" style="background-color: #2ecc71;">G</div>
+                        <div class="color-option" data-color="O" style="background-color: #f39c12;">O</div>
+                        <div class="color-option" data-color="Y" style="background-color: #f1c40f;">Y</div>
+                    </div>
+                    <div class="paint-info" id="paint-info" style="display: none;">
+                        <p>Kliknij na kwadracik kostki, aby go pomalować</p>
+                        <p>Wybrany kolor: <span id="selected-color">W</span></p>
+                    </div>
                 </div>
             </div>
 

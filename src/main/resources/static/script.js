@@ -6,10 +6,16 @@ class RubikCubeSolver {
         this.solutionMoves = [];
         this.currentMoveIndex = 0;
         this.isPlayingSolution = false;
+        this.isPaintMode = false;
+        this.selectedColor = 'W';
+        this.isScramblingPhase = false;
         
         this.initializeCube();
         this.setupEventListeners();
         this.loadRandomCube();
+        
+        // Inicjalizuj domyślny wybrany kolor
+        this.selectColor('W');
     }
 
     // Inicjalizacja kostki
@@ -66,9 +72,21 @@ class RubikCubeSolver {
                     const square = document.createElement('div');
                     square.className = 'cube-square';
                     
+                    // Dodaj atrybuty dla identyfikacji pozycji
+                    square.dataset.face = faceName;
+                    square.dataset.row = row;
+                    square.dataset.col = col;
+                    
                     const color = this.currentCube[faceName][row][col];
                     if (color) {
                         square.classList.add(this.getColorClass(color));
+                    }
+                    
+                    // Dodaj obsługę kliknięć w trybie malowania
+                    if (this.isPaintMode) {
+                        square.addEventListener('click', (e) => {
+                            this.paintSquare(faceName, row, col);
+                        });
                     }
                     
                     faceElement.appendChild(square);
@@ -128,7 +146,44 @@ class RubikCubeSolver {
         }
     }
 
-    // Scramble kostki
+    // Rozpocznij fazę mieszania
+    startScramblingPhase() {
+        this.isScramblingPhase = true;
+        
+        // Pokaż sekcję ruchów kostki
+        document.getElementById('move-controls').style.display = 'block';
+        
+        // Ukryj przycisk solve
+        document.getElementById('solve-btn').style.display = 'none';
+        
+        // Zmień tekst przycisku scramble
+        document.getElementById('scramble-btn').textContent = '🔄 Nowa kostka';
+        
+        // Wyczyść rozwiązanie
+        this.solutionMoves = [];
+        this.currentMoveIndex = 0;
+        this.updateSolutionDisplay();
+        
+        this.showStatus('Teraz możesz mieszać kostkę używając przycisków ruchów. Kliknij "Gotowe" gdy skończysz!', 'info');
+    }
+
+    // Zakończ fazę mieszania i przejdź do rozwiązywania
+    finishScramblingPhase() {
+        this.isScramblingPhase = false;
+        
+        // Ukryj sekcję ruchów kostki
+        document.getElementById('move-controls').style.display = 'none';
+        
+        // Pokaż przycisk solve
+        document.getElementById('solve-btn').style.display = 'inline-block';
+        
+        // Zmień tekst przycisku scramble z powrotem
+        document.getElementById('scramble-btn').textContent = '🔀 Rozpocznij mieszanie';
+        
+        this.showStatus('Faza mieszania zakończona! Teraz możesz rozwiązać kostkę.', 'success');
+    }
+
+    // Scramble kostki (automatyczne mieszanie)
     async scrambleCube() {
         this.showStatus('Mieszanie kostki...', 'info');
         
@@ -163,7 +218,12 @@ class RubikCubeSolver {
             this.solutionMoves = [];
             this.currentMoveIndex = 0;
             this.updateSolutionDisplay();
-            this.showStatus('Losowa kostka załadowana!', 'success');
+            
+            if (this.isScramblingPhase) {
+                this.showStatus('Nowa kostka załadowana! Kontynuuj mieszanie.', 'success');
+            } else {
+                this.showStatus('Losowa kostka załadowana!', 'success');
+            }
         } else {
             this.showStatus('Błąd ładowania kostki', 'error');
         }
@@ -172,6 +232,31 @@ class RubikCubeSolver {
     // Reset kostki - pokazuje rozwiązana kostkę bez efektów
     async resetCube() {
         this.showStatus('Ładowanie rozwiązanej kostki...', 'info');
+        
+        // Resetuj stan interfejsu
+        this.isScramblingPhase = false;
+        this.isPaintMode = false;
+        
+        // Ukryj sekcję ruchów kostki
+        document.getElementById('move-controls').style.display = 'none';
+        
+        // Pokaż przycisk solve
+        document.getElementById('solve-btn').style.display = 'inline-block';
+        
+        // Zmień tekst przycisku scramble z powrotem
+        document.getElementById('scramble-btn').textContent = '🔀 Rozpocznij mieszanie';
+        
+        // Wyłącz tryb malowania jeśli był włączony
+        const paintBtn = document.getElementById('paint-mode-btn');
+        const colorPicker = document.getElementById('color-picker');
+        const paintInfo = document.getElementById('paint-info');
+        const cubeContainer = document.querySelector('.cube-net');
+        
+        paintBtn.textContent = '🎨 Tryb malowania';
+        paintBtn.classList.remove('active');
+        colorPicker.style.display = 'none';
+        paintInfo.style.display = 'none';
+        cubeContainer.classList.remove('paint-mode-active');
         
         // Utwórz rozwiązana kostkę na froncie
         this.currentCube = {
@@ -198,6 +283,67 @@ class RubikCubeSolver {
             [color, color, color],
             [color, color, color]
         ];
+    }
+
+    // Malowanie kwadracika
+    paintSquare(faceName, row, col) {
+        if (!this.isPaintMode) return;
+        
+        // Zaktualizuj kolor w strukturze kostki
+        this.currentCube[faceName][row][col] = this.selectedColor;
+        
+        // Przerenderuj kostkę
+        this.renderCube();
+        
+        // Wyczyść rozwiązanie (kostka się zmieniła)
+        this.solutionMoves = [];
+        this.currentMoveIndex = 0;
+        this.updateSolutionDisplay();
+        
+        this.showStatus(`Pomalowano kwadracik (${faceName}, ${row}, ${col}) na kolor ${this.selectedColor}`, 'info');
+    }
+
+    // Przełączanie trybu malowania
+    togglePaintMode() {
+        this.isPaintMode = !this.isPaintMode;
+        const paintBtn = document.getElementById('paint-mode-btn');
+        const colorPicker = document.getElementById('color-picker');
+        const paintInfo = document.getElementById('paint-info');
+        const cubeContainer = document.querySelector('.cube-net');
+        
+        if (this.isPaintMode) {
+            paintBtn.textContent = '🚫 Wyłącz malowanie';
+            paintBtn.classList.add('active');
+            colorPicker.style.display = 'grid';
+            paintInfo.style.display = 'block';
+            cubeContainer.classList.add('paint-mode-active');
+            this.showStatus('Tryb malowania włączony - kliknij na kwadraciki kostki', 'info');
+        } else {
+            paintBtn.textContent = '🎨 Tryb malowania';
+            paintBtn.classList.remove('active');
+            colorPicker.style.display = 'none';
+            paintInfo.style.display = 'none';
+            cubeContainer.classList.remove('paint-mode-active');
+            this.showStatus('Tryb malowania wyłączony', 'info');
+        }
+        
+        // Przerenderuj kostkę z nowymi event listenerami
+        this.renderCube();
+    }
+
+    // Wybór koloru
+    selectColor(color) {
+        this.selectedColor = color;
+        
+        // Zaktualizuj wyświetlanie wybranego koloru
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        document.querySelector(`[data-color="${color}"]`).classList.add('selected');
+        document.getElementById('selected-color').textContent = color;
+        
+        this.showStatus(`Wybrano kolor: ${color}`, 'info');
     }
 
     // Animacja rozwiązanej kostki
@@ -425,12 +571,23 @@ class RubikCubeSolver {
 
         // Przycisk scramble
         document.getElementById('scramble-btn').addEventListener('click', () => {
-            this.scrambleCube();
+            if (this.isScramblingPhase) {
+                // Jeśli jesteśmy w fazie mieszania, załaduj nową kostkę
+                this.loadRandomCube();
+            } else {
+                // Rozpocznij fazę mieszania
+                this.startScramblingPhase();
+            }
         });
 
         // Przycisk solve
         document.getElementById('solve-btn').addEventListener('click', () => {
             this.solveCube();
+        });
+
+        // Przycisk "Gotowe" - zakończ fazę mieszania
+        document.getElementById('done-scrambling-btn').addEventListener('click', () => {
+            this.finishScramblingPhase();
         });
 
         // Przycisk reset
@@ -451,6 +608,19 @@ class RubikCubeSolver {
         // Przycisk next step
         document.getElementById('step-solution-btn').addEventListener('click', () => {
             this.nextStep();
+        });
+
+        // Przycisk trybu malowania
+        document.getElementById('paint-mode-btn').addEventListener('click', () => {
+            this.togglePaintMode();
+        });
+
+        // Wybór kolorów
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                const color = e.target.dataset.color;
+                this.selectColor(color);
+            });
         });
 
         // Obsługa klawiatury
