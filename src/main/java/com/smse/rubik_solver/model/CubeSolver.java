@@ -49,53 +49,87 @@ public class CubeSolver {
 
     }
 
-    private List<String> optimizeMoves(List<String> moves) {
+    private static final Map<Character, Integer> AXIS = Map.of(
+        'U', 0, 'D', 0,
+        'R', 1, 'L', 1,
+        'F', 2, 'B', 2
+    );
+
+    public List<String> optimizeMoves(List<String> moves) {
         Stack<String> stack = new Stack<>();
 
         for (String move : moves) {
-            if (!stack.isEmpty()) {
-                String top = stack.peek();
-
-                if (isInverse(top, move)) {
-                    stack.pop(); // Anuluj przeciwne ruchy
-                    continue;
-                }
-                else if (top.equals(move)) {
-                    stack.pop();
-                    if (!stack.isEmpty() && stack.peek().equals(move)) {
-                        // Trzy takie same ruchy -> zamień na jeden przeciwny
-                        stack.pop();
-                        stack.push(getInverse(move));
-                    } else {
-                        // Dwa takie same ruchy -> tymczasowo przechowaj
-                        stack.push(move);
-                        stack.push(move);
-                    }
-                    continue;
-                }
-            }
-
             stack.push(move);
 
-            // Sprawdź czy można zoptymalizować sekwencje (tylko dla n > 3)
+            int axis = AXIS.getOrDefault(baseFace(move), -1);
+            normalizeAxisTail(stack, axis);
+
             optimizeSequences(stack);
         }
+        normalizeAxisTail(stack, 0); // UD
+        normalizeAxisTail(stack, 1); // RL
+        normalizeAxisTail(stack, 2); // FB
 
         return new ArrayList<>(stack);
     }
 
-    private void optimizeSequences(Stack<String> stack) {
-        if (stack.size() < 4)
-            return;
+    private void normalizeAxisTail(Stack<String> stack, int axis) {
+        if (axis < 0 || stack.isEmpty()) return;
 
-        // Sprawdź wszystkie możliwe sekwencje
+        int end = stack.size() - 1;
+        int start = end;
+
+        while (start >= 0) {
+            String mv = stack.get(start);
+            Integer ax = AXIS.get(baseFace(mv));
+            if (ax == null || ax != axis) break;
+            start--;
+        }
+        start++;
+        if (start > end) return;
+
+        int a = 0, b = 0; 
+
+        for (int i = start; i <= end; i++) {
+            String mv = stack.get(i);
+            char f = baseFace(mv);
+            int d = isPrime(mv) ? -1 : 1;
+            switch (axis) {
+                case 0: if (f == 'U') a += d; else if (f == 'D') b += d; break;
+                case 1: if (f == 'R') a += d; else if (f == 'L') b += d; break;
+                case 2: if (f == 'F') a += d; else if (f == 'B') b += d; break;
+            }
+        }
+        for (int i = end; i >= start; i--) stack.pop();
+
+        switch (axis) {
+            case 0: pushReduced(stack, 'U', a); pushReduced(stack, 'D', b); break;
+            case 1: pushReduced(stack, 'R', a); pushReduced(stack, 'L', b); break;
+            case 2: pushReduced(stack, 'F', a); pushReduced(stack, 'B', b); break;
+        }
+    }
+
+    private void pushReduced(Stack<String> stack, char face, int exp) {
+        int k = ((exp % 4) + 4) % 4;
+        if (k == 0) return;
+        if (k == 1) stack.push(String.valueOf(face));
+        else if (k == 2) {
+            stack.push(String.valueOf(face));
+            stack.push(String.valueOf(face));
+        }
+        else if (k == 3) stack.push(face + "'");
+    }
+
+
+    private void optimizeSequences(Stack<String> stack) {
+        if (stack.size() < 4) return;
+
         String[] firstMoves = { "F", "L", "R", "B" };
         String secondMove = "D";
 
         for (String firstMove : firstMoves) {
             int repeatCount = countSequenceRepetitions(stack, firstMove, secondMove);
 
-            // TYLKO dla n > 3
             if (repeatCount > 3) {
                 optimizeSequenceRepetition(stack, firstMove, secondMove, repeatCount);
                 return;
@@ -108,7 +142,6 @@ public class CubeSolver {
         int stackSize = stack.size();
 
         while (stackSize >= (count + 1) * 4) {
-            // Sprawdź czy następne 4 ruchy to ta sama sekwencja
             int baseIndex = stackSize - 1 - count * 4;
             String m4 = stack.get(baseIndex);
             String m3 = stack.get(baseIndex - 1);
@@ -117,51 +150,40 @@ public class CubeSolver {
 
             if (isSequence(m1, m2, m3, m4, first, second)) {
                 count++;
-            } else {
-                break;
-            }
+            } else break;
         }
-
         return count;
     }
 
     private void optimizeSequenceRepetition(Stack<String> stack, String first, String second, int repeatCount) {
-        // n > 3: zamień na (6-n) powtórzeń przeciwnej sekwencji
         int optimizedCount = 6 - repeatCount;
 
-        // Usuń wszystkie powtórzenia
-        for (int i = 0; i < repeatCount * 4; i++) {
-            stack.pop();
-        }
+        for (int i = 0; i < repeatCount * 4; i++) stack.pop();
 
-        // Dodaj zoptymalizowaną sekwencję
         if (optimizedCount > 0) {
             for (int i = 0; i < optimizedCount; i++) {
-                stack.push(second);
-                stack.push(first);
-                stack.push(getInverse(second));
-                stack.push(getInverse(first));
+                String[] toPush = { second, first, getInverse(second), getInverse(first) };
+                for (String mv : toPush) {
+                    stack.push(mv);
+                    int ax = AXIS.getOrDefault(baseFace(mv), -1);
+                    normalizeAxisTail(stack, ax); 
+                }
             }
         }
     }
 
     private boolean isSequence(String m1, String m2, String m3, String m4, String first, String second) {
-        // Sprawdź sekwencję X D X' D'
         return (m1.equals(first) && m2.equals(second) &&
                 m3.equals(getInverse(first)) && m4.equals(getInverse(second)));
     }
 
-    private boolean isInverse(String move1, String move2) {
-        return move1.equals(getInverse(move2));
+    private String getInverse(String move) {
+        if (move.endsWith("'")) return move.substring(0, move.length() - 1);
+        return move + "'";
     }
 
-    private String getInverse(String move) {
-        if (move.endsWith("'")) {
-            return move.substring(0, move.length() - 1);
-        } else {
-            return move + "'";
-        }
-    }
+    private char baseFace(String move) { return move.charAt(0); }
+    private boolean isPrime(String move) { return move.endsWith("'"); }
 
     private List<String> solveCrossOnLastLayer(Cube cube) {
         Color center = cube.getY()[1][1];
