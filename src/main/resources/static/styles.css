@@ -36,7 +36,7 @@ header p {
     opacity: 0.9;
 }
 
-/* Kostka Rubika - układ net */
+/* Rubik's Cube - net layout */
 .cube-container {
     display: flex;
     justify-content: center;
@@ -66,7 +66,7 @@ header p {
 .back-face { grid-area: back; }
 .down-face { grid-area: down; }
 
-/* Ścianki kostki */
+/* Cube faces */
 .face {
     width: 120px;
     height: 120px;
@@ -111,15 +111,15 @@ header p {
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-/* Kolory kostki Rubika */
-.color-W { background-color: #ffffff; } /* Biały */
-.color-R { background-color: #e74c3c; } /* Czerwony */
-.color-B { background-color: #3498db; } /* Niebieski */
-.color-G { background-color: #2ecc71; } /* Zielony */
-.color-O { background-color: #f39c12; } /* Pomarańczowy */
-.color-Y { background-color: #f1c40f; } /* Żółty */
+/* Rubik's Cube colors */
+.color-W { background-color: #ffffff; } /* White */
+.color-R { background-color: #e74c3c; } /* Red */
+.color-B { background-color: #3498db; } /* Blue */
+.color-G { background-color: #2ecc71; } /* Green */
+.color-O { background-color: #f39c12; } /* Orange */
+.color-Y { background-color: #f1c40f; } /* Yellow */
 
-/* Kontrolki */
+/* Controls */
 .controls {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -140,7 +140,7 @@ header p {
     font-size: 1.2rem;
 }
 
-/* Przyciski ruchów */
+/* Move buttons */
 .move-buttons {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -267,7 +267,7 @@ header p {
     color: #2c3e50;
 }
 
-/* Tryb malowania - podświetlenie kwadracików */
+/* Paint mode - square highlighting */
 .paint-mode-active .cube-square {
     cursor: crosshair;
     border: 2px solid #3498db;
@@ -291,7 +291,7 @@ header p {
     box-shadow: none;
 }
 
-/* Rozwiązanie */
+/* Solution */
 .solution-container {
     background: #f8f9fa;
     border-radius: 6px;
@@ -352,6 +352,32 @@ header p {
     font-weight: bold;
     color: #2c3e50;
     margin-bottom: 5px;
+    transition: all 0.3s ease;
+}
+
+.status-message.error {
+    color: #e74c3c;
+    background: rgba(231, 76, 60, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    border-left: 4px solid #e74c3c;
+    animation: errorPulse 0.5s ease-in-out;
+}
+
+.status-message.success {
+    color: #27ae60;
+    background: rgba(39, 174, 96, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    border-left: 4px solid #27ae60;
+}
+
+.status-message.info {
+    color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    border-left: 4px solid #3498db;
 }
 
 .session-info {
@@ -359,7 +385,13 @@ header p {
     color: #7f8c8d;
 }
 
-/* Responsywność */
+@keyframes errorPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Responsiveness */
 @media (max-width: 768px) {
     .cube-net {
         grid-template-columns: 80px 80px 80px 80px;
@@ -424,7 +456,7 @@ header p {
     100% { transform: rotateY(360deg); }
 }
 
-/* Efekty dla rozwiązanej kostki */
+/* Effects for solved cube */
 .solved-cube .face {
     box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
     border: 3px solid #27ae60;

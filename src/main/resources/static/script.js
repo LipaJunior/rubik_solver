@@ -12,13 +12,13 @@ class RubikCubeSolver {
         
         this.initializeCube();
         this.setupEventListeners();
-        this.loadRandomCube();
+        this.resetCube();
         
-        // Inicjalizuj domyślny wybrany kolor
-        this.selectColor('W');
+        // Initialize default selected color without showing status message
+        this.selectColorSilently('W');
     }
 
-    // Inicjalizacja kostki
+    // Cube initialization
     initializeCube() {
         this.currentCube = {
             up: this.createEmptyFace(),
@@ -38,7 +38,7 @@ class RubikCubeSolver {
         ];
     }
 
-    // Mapowanie kolorów
+    // Color mapping
     getColorClass(color) {
         const colorMap = {
             'W': 'color-W',
@@ -51,11 +51,11 @@ class RubikCubeSolver {
         return colorMap[color] || 'color-W';
     }
 
-    // Renderowanie kostki
+    // Cube rendering
     renderCube() {
         const faces = ['up', 'front', 'right', 'left', 'back', 'down'];
         
-        // Usuń klasę rozwiązanej kostki jeśli kostka nie jest rozwiązana
+        // Remove solved cube class if cube is not solved
         const cubeContainer = document.querySelector('.cube-net');
         if (cubeContainer) {
             cubeContainer.classList.remove('solved-cube');
@@ -72,7 +72,7 @@ class RubikCubeSolver {
                     const square = document.createElement('div');
                     square.className = 'cube-square';
                     
-                    // Dodaj atrybuty dla identyfikacji pozycji
+                    // Add attributes for position identification
                     square.dataset.face = faceName;
                     square.dataset.row = row;
                     square.dataset.col = col;
@@ -82,7 +82,7 @@ class RubikCubeSolver {
                         square.classList.add(this.getColorClass(color));
                     }
                     
-                    // Dodaj obsługę kliknięć w trybie malowania
+                    // Add click handling in paint mode
                     if (this.isPaintMode) {
                         square.addEventListener('click', (e) => {
                             this.paintSquare(faceName, row, col);
@@ -95,7 +95,7 @@ class RubikCubeSolver {
         });
     }
 
-    // Komunikacja z API
+    // API communication
     async makeApiCall(endpoint, method = 'POST', data = null) {
         try {
             const options = {
@@ -109,27 +109,37 @@ class RubikCubeSolver {
                 options.body = JSON.stringify(data);
             }
 
+            let response;
             if (this.sessionId) {
                 const url = new URL(`/cube/${endpoint}`, window.location.origin);
                 url.searchParams.append('sessionId', this.sessionId);
-                const response = await fetch(url, options);
-                return await response.json();
+                response = await fetch(url, options);
             } else {
-                const response = await fetch(`/cube/${endpoint}`, options);
-                return await response.json();
+                response = await fetch(`/cube/${endpoint}`, options);
             }
+
+            // Check if response is ok
+            if (!response.ok) {
+                return {
+                    error: true,
+                    status: response.status,
+                    statusText: response.statusText
+                };
+            }
+
+            return await response.json();
         } catch (error) {
             console.error('API Error:', error);
-            this.showStatus('Błąd połączenia z serwerem', 'error');
+            this.showStatus('Connection error with server', 'error');
             return null;
         }
     }
 
-    // Wykonanie ruchu
+    // Move execution
     async makeMove(move) {
         if (!this.currentCube) return;
 
-        this.showStatus(`Wykonywanie ruchu: ${move}`, 'info');
+        this.showStatus(`Executing move: ${move}`, 'info');
         
         const response = await this.makeApiCall('move', 'POST', {
             cube: this.currentCube,
@@ -140,52 +150,52 @@ class RubikCubeSolver {
             this.currentCube = response.cube;
             this.sessionId = response.sessionId;
             this.renderCube();
-            this.showStatus(`Ruch ${move} wykonany`, 'success');
+            this.showStatus(`Move ${move} executed`, 'success');
         } else {
-            this.showStatus(`Błąd wykonania ruchu: ${move}`, 'error');
+            this.showStatus(`Error executing move: ${move}`, 'error');
         }
     }
 
-    // Rozpocznij fazę mieszania
+    // Start scrambling phase
     startScramblingPhase() {
         this.isScramblingPhase = true;
         
-        // Pokaż sekcję ruchów kostki
+        // Show cube moves section
         document.getElementById('move-controls').style.display = 'block';
         
-        // Ukryj przycisk solve
+        // Hide solve button
         document.getElementById('solve-btn').style.display = 'none';
         
-        // Zmień tekst przycisku scramble
-        document.getElementById('scramble-btn').textContent = '🔄 Nowa kostka';
+        // Change scramble button text
+        document.getElementById('scramble-btn').textContent = '🔄 New Cube';
         
-        // Wyczyść rozwiązanie
+        // Clear solution
         this.solutionMoves = [];
         this.currentMoveIndex = 0;
         this.updateSolutionDisplay();
         
-        this.showStatus('Teraz możesz mieszać kostkę używając przycisków ruchów. Kliknij "Gotowe" gdy skończysz!', 'info');
+        this.showStatus('Now you can scramble the cube using the move buttons. Click "Done" when finished!', 'info');
     }
 
-    // Zakończ fazę mieszania i przejdź do rozwiązywania
+    // Finish scrambling phase and move to solving
     finishScramblingPhase() {
         this.isScramblingPhase = false;
         
-        // Ukryj sekcję ruchów kostki
+        // Hide cube moves section
         document.getElementById('move-controls').style.display = 'none';
         
-        // Pokaż przycisk solve
+        // Show solve button
         document.getElementById('solve-btn').style.display = 'inline-block';
         
-        // Zmień tekst przycisku scramble z powrotem
-        document.getElementById('scramble-btn').textContent = '🔀 Rozpocznij mieszanie';
+        // Change scramble button text back
+        document.getElementById('scramble-btn').textContent = '🔀 Scramble';
         
-        this.showStatus('Faza mieszania zakończona! Teraz możesz rozwiązać kostkę.', 'success');
+        this.showStatus('Scrambling finished!', 'success');
     }
 
-    // Scramble kostki (automatyczne mieszanie)
+    // Cube scrambling (automatic mixing)
     async scrambleCube() {
-        this.showStatus('Mieszanie kostki...', 'info');
+        this.showStatus('Scrambling cube...', 'info');
         
         const response = await this.makeApiCall('scramble', 'POST', {
             cube: this.currentCube,
@@ -199,15 +209,15 @@ class RubikCubeSolver {
             this.solutionMoves = [];
             this.currentMoveIndex = 0;
             this.updateSolutionDisplay();
-            this.showStatus('Kostka wymieszana!', 'success');
+            this.showStatus('Cube scrambled!', 'success');
         } else {
-            this.showStatus('Błąd mieszania kostki', 'error');
+            this.showStatus('Error scrambling cube', 'error');
         }
     }
 
-    // Losowa kostka
+    // Random cube
     async loadRandomCube() {
-        this.showStatus('Ładowanie losowej kostki...', 'info');
+        this.showStatus('Loading random cube...', 'info');
         
         const response = await this.makeApiCall('random', 'POST');
 
@@ -220,20 +230,20 @@ class RubikCubeSolver {
             this.updateSolutionDisplay();
             
             if (this.isScramblingPhase) {
-                this.showStatus('Nowa kostka załadowana! Kontynuuj mieszanie.', 'success');
+                this.showStatus('New cube loaded! Continue scrambling.', 'success');
             } else {
-                this.showStatus('Losowa kostka załadowana!', 'success');
+                this.showStatus('Random cube loaded!', 'success');
             }
         } else {
-            this.showStatus('Błąd ładowania kostki', 'error');
+            this.showStatus('Error loading cube', 'error');
         }
     }
 
     // Reset kostki - pokazuje rozwiązana kostkę bez efektów
     async resetCube() {
-        this.showStatus('Ładowanie rozwiązanej kostki...', 'info');
+        this.showStatus('Loading solved cube...', 'info');
         
-        // Resetuj stan interfejsu
+        // Reset interface state
         this.isScramblingPhase = false;
         this.isPaintMode = false;
         
@@ -244,7 +254,7 @@ class RubikCubeSolver {
         document.getElementById('solve-btn').style.display = 'inline-block';
         
         // Zmień tekst przycisku scramble z powrotem
-        document.getElementById('scramble-btn').textContent = '🔀 Rozpocznij mieszanie';
+        document.getElementById('scramble-btn').textContent = '🔀 Scramble';
         
         // Wyłącz tryb malowania jeśli był włączony
         const paintBtn = document.getElementById('paint-mode-btn');
@@ -252,7 +262,7 @@ class RubikCubeSolver {
         const paintInfo = document.getElementById('paint-info');
         const cubeContainer = document.querySelector('.cube-net');
         
-        paintBtn.textContent = '🎨 Tryb malowania';
+        paintBtn.textContent = '🎨 Paint the cube';
         paintBtn.classList.remove('active');
         colorPicker.style.display = 'none';
         paintInfo.style.display = 'none';
@@ -273,10 +283,10 @@ class RubikCubeSolver {
         this.currentMoveIndex = 0;
         this.updateSolutionDisplay();
         
-        this.showStatus('Rozwiązana kostka załadowana!', 'success');
+        this.showStatus('Solved cube loaded!', 'success');
     }
 
-    // Pomocnicza metoda do tworzenia rozwiązanej ścianki
+    // Helper method to create solved face
     createCompletedFace(color) {
         return [
             [color, color, color],
@@ -285,25 +295,25 @@ class RubikCubeSolver {
         ];
     }
 
-    // Malowanie kwadracika
+    // Painting square
     paintSquare(faceName, row, col) {
         if (!this.isPaintMode) return;
         
-        // Zaktualizuj kolor w strukturze kostki
+        // Update color in cube structure
         this.currentCube[faceName][row][col] = this.selectedColor;
         
-        // Przerenderuj kostkę
+        // Re-render cube
         this.renderCube();
         
-        // Wyczyść rozwiązanie (kostka się zmieniła)
+        // Clear solution (cube has changed)
         this.solutionMoves = [];
         this.currentMoveIndex = 0;
         this.updateSolutionDisplay();
         
-        this.showStatus(`Pomalowano kwadracik (${faceName}, ${row}, ${col}) na kolor ${this.selectedColor}`, 'info');
+        this.showStatus(`Painted square (${faceName}, ${row}, ${col}) with color ${this.selectedColor}`, 'info');
     }
 
-    // Przełączanie trybu malowania
+    // Toggle paint mode
     togglePaintMode() {
         this.isPaintMode = !this.isPaintMode;
         const paintBtn = document.getElementById('paint-mode-btn');
@@ -312,30 +322,30 @@ class RubikCubeSolver {
         const cubeContainer = document.querySelector('.cube-net');
         
         if (this.isPaintMode) {
-            paintBtn.textContent = '🚫 Wyłącz malowanie';
+            paintBtn.textContent = '🚫 Finish painting';
             paintBtn.classList.add('active');
             colorPicker.style.display = 'grid';
             paintInfo.style.display = 'block';
             cubeContainer.classList.add('paint-mode-active');
-            this.showStatus('Tryb malowania włączony - kliknij na kwadraciki kostki', 'info');
+            this.showStatus('Paint mode enabled - click on cube squares', 'info');
         } else {
-            paintBtn.textContent = '🎨 Tryb malowania';
+            paintBtn.textContent = '🎨 Paint the cube';
             paintBtn.classList.remove('active');
             colorPicker.style.display = 'none';
             paintInfo.style.display = 'none';
             cubeContainer.classList.remove('paint-mode-active');
-            this.showStatus('Tryb malowania wyłączony', 'info');
+            this.showStatus('Paint mode disabled', 'info');
         }
         
-        // Przerenderuj kostkę z nowymi event listenerami
+        // Re-render cube with new event listeners
         this.renderCube();
     }
 
-    // Wybór koloru
+    // Color selection
     selectColor(color) {
         this.selectedColor = color;
         
-        // Zaktualizuj wyświetlanie wybranego koloru
+        // Update selected color display
         document.querySelectorAll('.color-option').forEach(option => {
             option.classList.remove('selected');
         });
@@ -343,21 +353,34 @@ class RubikCubeSolver {
         document.querySelector(`[data-color="${color}"]`).classList.add('selected');
         document.getElementById('selected-color').textContent = color;
         
-        this.showStatus(`Wybrano kolor: ${color}`, 'info');
+        this.showStatus(`Selected color: ${color}`, 'info');
     }
 
-    // Animacja rozwiązanej kostki
+    // Silent color selection (without status message)
+    selectColorSilently(color) {
+        this.selectedColor = color;
+        
+        // Update selected color display
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        document.querySelector(`[data-color="${color}"]`).classList.add('selected');
+        document.getElementById('selected-color').textContent = color;
+    }
+
+    // Solved cube animation
     animateSolvedCube() {
         const faces = ['up', 'front', 'right', 'left', 'back', 'down'];
         
         faces.forEach((faceName, index) => {
             const faceElement = document.getElementById(`${faceName}-face`);
             if (faceElement) {
-                // Dodaj klasę animacji z opóźnieniem
+                // Add animation class with delay
                 setTimeout(() => {
                     faceElement.classList.add('face-rotating');
                     
-                    // Usuń klasę po zakończeniu animacji
+                    // Remove class after animation ends
                     setTimeout(() => {
                         faceElement.classList.remove('face-rotating');
                     }, 500);
@@ -366,7 +389,7 @@ class RubikCubeSolver {
         });
     }
 
-    // Sprawdź czy kostka jest rozwiązana
+    // Check if cube is solved
     isCubeSolved() {
         if (!this.currentCube) return false;
         
@@ -377,7 +400,7 @@ class RubikCubeSolver {
             const face = this.currentCube[faces[i]];
             const expectedColor = expectedColors[i];
             
-            // Sprawdź czy cała ścianka ma ten sam kolor
+            // Check if entire face has the same color
             for (let row = 0; row < 3; row++) {
                 for (let col = 0; col < 3; col++) {
                     if (face[row][col] !== expectedColor) {
@@ -390,24 +413,24 @@ class RubikCubeSolver {
         return true;
     }
 
-    // Pokaż efekty rozwiązanej kostki
+    // Show solved cube effects
     showSolvedEffects() {
-        // Dodaj klasę rozwiązanej kostki
+        // Add solved cube class
         const cubeContainer = document.querySelector('.cube-net');
         cubeContainer.classList.add('solved-cube');
         
-        // Dodaj animację rozwiązanej kostki
+        // Add solved cube animation
         this.animateSolvedCube();
         
-        // Dodaj efekt wizualny sukcesu
+        // Add visual success effect
         this.showSuccessEffect();
         
-        this.showStatus('🎉 Gratulacje! Kostka została rozwiązana!', 'success');
+        this.showStatus('🎉 Congratulations! Cube has been solved!', 'success');
     }
 
-    // Efekt wizualny sukcesu
+    // Visual success effect
     showSuccessEffect() {
-        // Dodaj konfetti effect (prosty)
+        // Add confetti effect (simple)
         const container = document.querySelector('.container');
         const confetti = document.createElement('div');
         confetti.innerHTML = '🎉✨🎊✨🎉';
@@ -424,7 +447,7 @@ class RubikCubeSolver {
         
         container.appendChild(confetti);
         
-        // Usuń po animacji
+        // Remove after animation
         setTimeout(() => {
             if (confetti.parentNode) {
                 confetti.parentNode.removeChild(confetti);
@@ -432,28 +455,38 @@ class RubikCubeSolver {
         }, 2000);
     }
 
-    // Rozwiązywanie kostki
+    // Cube solving
     async solveCube() {
         if (!this.currentCube) return;
 
-        this.showStatus('Rozwiązywanie kostki...', 'info');
+        this.showStatus('Solving cube...', 'info');
         
         const response = await this.makeApiCall('solve', 'POST', {
             cube: this.currentCube
         });
+
+        // Check if response contains an error
+        if (response && response.error) {
+            if (response.status === 400) {
+                this.showStatus('❌ Illegal Cube!', 'error');
+            } else {
+                this.showStatus(`Failed to solve cube (${response.status})`, 'error');
+            }
+            return;
+        }
 
         if (response && response.moves) {
             this.solutionMoves = response.moves;
             this.currentMoveIndex = 0;
             this.sessionId = response.sessionID;
             this.updateSolutionDisplay();
-            this.showStatus(`Znaleziono rozwiązanie: ${this.solutionMoves.length} ruchów`, 'success');
+            this.showStatus(`Solution found: ${this.solutionMoves.length} moves`, 'success');
         } else {
-            this.showStatus('Nie udało się rozwiązać kostki', 'error');
+            this.showStatus('Failed to solve cube', 'error');
         }
     }
 
-    // Aktualizacja wyświetlania rozwiązania
+    // Solution display update
     updateSolutionDisplay() {
         const container = document.getElementById('solution-moves');
         const playBtn = document.getElementById('play-solution-btn');
@@ -462,7 +495,7 @@ class RubikCubeSolver {
         container.innerHTML = '';
 
         if (this.solutionMoves.length === 0) {
-            container.innerHTML = '<span style="color: #6c757d;">Brak rozwiązania</span>';
+            container.innerHTML = '<span style="color: #6c757d;">No solution</span>';
             playBtn.disabled = true;
             stepBtn.disabled = true;
             return;
@@ -486,7 +519,7 @@ class RubikCubeSolver {
         stepBtn.disabled = false;
     }
 
-    // Odtwarzanie rozwiązania
+    // Solution playback
     async playSolution() {
         if (this.isPlayingSolution || this.currentMoveIndex >= this.solutionMoves.length) {
             return;
@@ -503,7 +536,7 @@ class RubikCubeSolver {
             this.currentMoveIndex++;
             this.updateSolutionDisplay();
             
-            // Krótka pauza między ruchami
+            // Short pause between moves
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
@@ -512,31 +545,31 @@ class RubikCubeSolver {
         playBtn.onclick = () => this.playSolution();
         
         if (this.currentMoveIndex >= this.solutionMoves.length) {
-            // Sprawdź czy kostka jest rozwiązana i dodaj efekty
+            // Check if cube is solved and add effects
             if (this.isCubeSolved()) {
                 this.showSolvedEffects();
             }
-            this.showStatus('Rozwiązanie zakończone!', 'success');
+            this.showStatus('Solution completed!', 'success');
         }
     }
 
-    // Pauzowanie rozwiązania
+    // Solution pausing
     pauseSolution() {
         this.isPlayingSolution = false;
         const playBtn = document.getElementById('play-solution-btn');
         playBtn.textContent = '▶️ Play Solution';
         playBtn.onclick = () => this.playSolution();
-        this.showStatus('Rozwiązanie wstrzymane', 'info');
+        this.showStatus('Solution paused', 'info');
     }
 
-    // Następny krok rozwiązania
+    // Next solution step
     async nextStep() {
         if (this.currentMoveIndex >= this.solutionMoves.length) {
-            // Sprawdź czy kostka jest rozwiązana i dodaj efekty
+            // Check if cube is solved and add effects
             if (this.isCubeSolved()) {
                 this.showSolvedEffects();
             }
-            this.showStatus('Rozwiązanie zakończone!', 'success');
+            this.showStatus('Solution completed!', 'success');
             return;
         }
 
@@ -546,7 +579,7 @@ class RubikCubeSolver {
         this.updateSolutionDisplay();
     }
 
-    // Wyświetlanie statusu
+    // Status display
     showStatus(message, type = 'info') {
         const statusElement = document.getElementById('status-message');
         const sessionElement = document.getElementById('session-info');
@@ -559,9 +592,9 @@ class RubikCubeSolver {
         }
     }
 
-    // Konfiguracja event listenerów
+    // Event listeners configuration
     setupEventListeners() {
-        // Przyciski ruchów
+        // Move buttons
         document.querySelectorAll('.move-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const move = e.target.dataset.move;
@@ -569,53 +602,53 @@ class RubikCubeSolver {
             });
         });
 
-        // Przycisk scramble
+        // Scramble button
         document.getElementById('scramble-btn').addEventListener('click', () => {
             if (this.isScramblingPhase) {
-                // Jeśli jesteśmy w fazie mieszania, załaduj nową kostkę
+                // If we're in scrambling phase, load new cube
                 this.loadRandomCube();
             } else {
-                // Rozpocznij fazę mieszania
+                // Start scrambling phase
                 this.startScramblingPhase();
             }
         });
 
-        // Przycisk solve
+        // Solve button
         document.getElementById('solve-btn').addEventListener('click', () => {
             this.solveCube();
         });
 
-        // Przycisk "Gotowe" - zakończ fazę mieszania
+        // "Done" button - finish scrambling phase
         document.getElementById('done-scrambling-btn').addEventListener('click', () => {
             this.finishScramblingPhase();
         });
 
-        // Przycisk reset
+        // Reset button
         document.getElementById('reset-btn').addEventListener('click', () => {
             this.resetCube();
         });
 
-        // Przycisk random
+        // Random button
         document.getElementById('random-btn').addEventListener('click', () => {
             this.loadRandomCube();
         });
 
-        // Przycisk play solution
+        // Play solution button
         document.getElementById('play-solution-btn').addEventListener('click', () => {
             this.playSolution();
         });
 
-        // Przycisk next step
+        // Next step button
         document.getElementById('step-solution-btn').addEventListener('click', () => {
             this.nextStep();
         });
 
-        // Przycisk trybu malowania
+        // Paint mode button
         document.getElementById('paint-mode-btn').addEventListener('click', () => {
             this.togglePaintMode();
         });
 
-        // Wybór kolorów
+        // Color selection
         document.querySelectorAll('.color-option').forEach(option => {
             option.addEventListener('click', (e) => {
                 const color = e.target.dataset.color;
@@ -623,9 +656,9 @@ class RubikCubeSolver {
             });
         });
 
-        // Obsługa klawiatury
+        // Keyboard handling
         document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) return; // Ignoruj skróty klawiszowe
+            if (e.ctrlKey || e.metaKey) return; // Ignore keyboard shortcuts
             
             const keyMap = {
                 'r': 'R',
@@ -651,12 +684,12 @@ class RubikCubeSolver {
     }
 }
 
-// Inicjalizacja aplikacji po załadowaniu DOM
+// Application initialization after DOM load
 document.addEventListener('DOMContentLoaded', () => {
     new RubikCubeSolver();
 });
 
-// Dodatkowe style dla statusów
+// Additional styles for status
 const style = document.createElement('style');
 style.textContent = `
     .status-message.success { color: #28a745; }
