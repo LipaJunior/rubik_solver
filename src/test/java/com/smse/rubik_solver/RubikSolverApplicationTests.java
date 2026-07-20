@@ -1,13 +1,85 @@
 package com.smse.rubik_solver;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import com.smse.rubik_solver.model.Color;
+import com.smse.rubik_solver.model.Cube;
+
+import com.smse.rubik_solver.service.*;
 
 @SpringBootTest
 class RubikSolverApplicationTests {
 
+	final ValidationService validationService = new ValidationService();
+	final CubeService cubeService = new CubeService();
+
 	@Test
 	void contextLoads() {
+	}
+
+	private Cube deepCopyCube(Cube original) {
+		Cube copy = new Cube();
+		copy.setUp(deepCopyFace(original.getUp()));
+		copy.setFront(deepCopyFace(original.getFront()));
+		copy.setBack(deepCopyFace(original.getBack()));
+		copy.setLeft(deepCopyFace(original.getLeft()));
+		copy.setRight(deepCopyFace(original.getRight()));
+		copy.setDown(deepCopyFace(original.getDown()));
+		copy.initArrays();
+		return copy;
+	}
+
+	private List<List<Color>> deepCopyFace(List<List<Color>> face) {
+		List<List<Color>> newFace = new ArrayList<>();
+		for (List<Color> row : face) {
+			newFace.add(new ArrayList<>(row));
+		}
+		return newFace;
+	}
+
+	@Test
+	@DisplayName("Solving a random cube")
+	void solvesRandomScramble() {
+
+		Cube scrambled = cubeService.createSolvedCube();
+		cubeService.getRandomScramble(scrambled, 20);
+
+		assertTrue(validationService.isCubeValid(scrambled), "Scrambled cube should be valid");
+
+		Cube originalCopy = deepCopyCube(scrambled);
+		List<String> solutionMoves = cubeService.solve(scrambled);
+
+		assertNotNull(solutionMoves, "Solver should return a list of moves");
+
+		cubeService.applyMoves(originalCopy, solutionMoves);
+		assertTrue(originalCopy.isCubeCompleted(), "Cube should be solved after applying the solution moves");
+	}
+
+	@Test
+	@DisplayName("Solving a solved cube")
+	void solvingSolvedCube() {
+
+		Cube solved = cubeService.createSolvedCube();
+
+		assertTrue(validationService.isCubeValid(solved), "Cube should be valid");
+
+		Cube originalCopy = deepCopyCube(solved);
+		List<String> solutionMoves = cubeService.solve(solved);
+
+		assertNotNull(solutionMoves, "Solver should return a list of moves");
+		assertTrue(solutionMoves.isEmpty(), "Solution moves list should be empty");
+
+		cubeService.applyMoves(originalCopy, solutionMoves);
+		assertTrue(originalCopy.isCubeCompleted(), "Cube should be solved after applying the solution moves");
 	}
 
 }
