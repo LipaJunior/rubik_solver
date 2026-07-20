@@ -20,7 +20,7 @@ public class CubeSolver {
         if (shortcut != null) {
             cube.makeMovesFromList(shortcut);
             cube.syncToLists();
-            return optimizeMoves(shortcut);
+            return collapseDoubles(optimizeMoves(shortcut));
         }
 
         List<String> allMoves = new ArrayList<>();
@@ -30,7 +30,31 @@ public class CubeSolver {
         allMoves.addAll(solveLastLayer(cube));
         cube.syncToLists();
 
-        return optimizeMoves(allMoves);
+        return collapseDoubles(optimizeMoves(allMoves));
+    }
+
+    // Ostatni krok: dwa identyczne kolejne obroty tej samej sciany (np. "U" "U"
+    // albo "U'" "U'") to obrot o 180 stopni - laczymy je w jeden token "U2".
+    // Optymalizator pozostaje nietkniety (dziala na pojedynczych ruchach), a wynik
+    // jest zgodny z makeMovesFromList i frontendem.
+    private List<String> collapseDoubles(List<String> moves) {
+        List<String> result = new ArrayList<>();
+
+        int i = 0;
+        while (i < moves.size()) {
+            String move = moves.get(i);
+            boolean singleTurn = move.length() == 1 || move.endsWith("'");
+
+            if (singleTurn && i + 1 < moves.size() && move.equals(moves.get(i + 1))) {
+                result.add(move.charAt(0) + "2");
+                i += 2;
+            } else {
+                result.add(move);
+                i++;
+            }
+        }
+
+        return result;
     }
 
     // Iteracyjne poglebianie: zwraca najkrotsza sekwencje pojedynczych ruchow

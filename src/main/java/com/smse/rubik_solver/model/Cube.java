@@ -107,12 +107,12 @@ public class Cube {
     }
 
     private static final String[] MOVES = {
-            "U", "U'",
-            "D", "D'",
-            "L", "L'",
-            "R", "R'",
-            "F", "F'",
-            "B", "B'"
+            "U", "U'", "U2",
+            "D", "D'", "D2",
+            "L", "L'", "L2",
+            "R", "R'", "R2",
+            "F", "F'", "F2",
+            "B", "B'", "B2"
     };
 
     public boolean isCubeCompleted() {
@@ -387,6 +387,30 @@ public class Cube {
                     break;
                 case "B'":
                     moveBprim();
+                    break;
+                case "U2":
+                    moveU();
+                    moveU();
+                    break;
+                case "D2":
+                    moveD();
+                    moveD();
+                    break;
+                case "R2":
+                    moveR();
+                    moveR();
+                    break;
+                case "L2":
+                    moveL();
+                    moveL();
+                    break;
+                case "F2":
+                    moveF();
+                    moveF();
+                    break;
+                case "B2":
+                    moveB();
+                    moveB();
                     break;
                 default:
                     log.warn("Unknown move: {}", move);

@@ -120,6 +120,22 @@ class RubikSolverApplicationTests {
 	}
 
 	@Test
+	@DisplayName("Double-move token X2 equals applying X twice")
+	void doubleMoveEqualsTwoSingles() {
+		String[] faces = { "U", "D", "R", "L", "F", "B" };
+		for (String f : faces) {
+			Cube twice = cubeService.createSolvedCube();
+			cubeService.applyMoves(twice, List.of(f, f));
+
+			Cube doubled = cubeService.createSolvedCube();
+			cubeService.applyMoves(doubled, List.of(f + "2"));
+
+			assertTrue(serialize(twice).equals(serialize(doubled)),
+					"Move " + f + "2 should equal " + f + " " + f);
+		}
+	}
+
+	@Test
 	@DisplayName("Parity check rejects an impossible single edge swap")
 	void rejectsSingleEdgeSwap() {
 		Cube cube = cubeService.createSolvedCube();
