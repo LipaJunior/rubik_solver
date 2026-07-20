@@ -119,6 +119,86 @@ header p {
 .color-O { background-color: #f39c12; } /* Orange */
 .color-Y { background-color: #f1c40f; } /* Yellow */
 
+/* Widok 2D / 3D - przelacznik */
+.view-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.view-btn {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.view-btn:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.view-btn.active {
+    background: #fff;
+    color: #2c3e50;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Kostka 3D */
+.cube-3d-scene {
+    justify-content: center;
+    align-items: center;
+    width: 320px;
+    height: 340px;
+    perspective: 1000px;
+    cursor: grab;
+    user-select: none;
+}
+
+.cube-3d-scene:active {
+    cursor: grabbing;
+}
+
+.cube-3d {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    transform-style: preserve-3d;
+    transform: rotateX(-30deg) rotateY(-45deg);
+}
+
+.cube3d-face {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 3px;
+    padding: 4px;
+    box-sizing: border-box;
+    background: #1a1a1a;
+    border-radius: 6px;
+}
+
+.f-front { transform: translateZ(75px); }
+.f-back  { transform: rotateY(180deg) translateZ(75px); }
+.f-right { transform: rotateY(90deg) translateZ(75px); }
+.f-left  { transform: rotateY(-90deg) translateZ(75px); }
+.f-up    { transform: rotateX(90deg) translateZ(75px); }
+.f-down  { transform: rotateX(-90deg) translateZ(75px); }
+
+.cube3d-square {
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.25);
+}
+
 /* Controls */
 .controls {
     display: grid;
