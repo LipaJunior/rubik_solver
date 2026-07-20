@@ -478,7 +478,7 @@ class RubikCubeSolver {
         if (response && response.moves) {
             this.solutionMoves = response.moves;
             this.currentMoveIndex = 0;
-            this.sessionId = response.sessionID;
+            this.sessionId = response.sessionId;
             this.updateSolutionDisplay();
             this.showStatus(`Solution found: ${this.solutionMoves.length} moves`, 'success');
         } else {

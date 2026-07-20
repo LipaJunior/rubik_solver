@@ -9,7 +9,10 @@ import com.smse.rubik_solver.model.Color;
 import com.smse.rubik_solver.model.Cube;
 import com.smse.rubik_solver.model.CubeSolver;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class CubeService {
 
     private final ValidationService validationService = new ValidationService();
@@ -56,7 +59,7 @@ public class CubeService {
         int totalMoves = 0;
 
         for (int i = 0; i < repetitions; i++) {
-            System.out.println("Iteration " + (i + 1));
+            log.info("Iteration {}", i + 1);
 
             long startTime = System.nanoTime(); // start pomiaru czasu
 
@@ -65,7 +68,7 @@ public class CubeService {
             getRandomScramble(randomCube, 20);
 
             if (!validationService.isCubeValid(randomCube)) {
-                System.out.println("Invalid scrambled cube");
+                log.warn("Invalid scrambled cube");
                 return false;
             }
 
@@ -87,10 +90,10 @@ public class CubeService {
 
             // 4. Sprawdź czy jest rozwiązana
             if (!originalCube.isCubeCompleted()) {
-                System.out.println("Failed");
+                log.warn("Failed");
                 return false; // nie udało się w którymś podejściu
             } else {
-                System.out.println("Completed in " + solutionMoves.size() + " moves, time: " + durationMs + " ms");
+                log.info("Completed in {} moves, time: {} ms", solutionMoves.size(), durationMs);
             }
         }
 
@@ -98,10 +101,10 @@ public class CubeService {
         double avgTimeMs = (double) totalTimeMs / repetitions;
         double avgMoves = (double) totalMoves / repetitions;
 
-        System.out.println("All " + repetitions + " iterations successful!");
-        System.out.println("Total time: " + totalTimeMs + " ms");
-        System.out.println("Average time: " + String.format("%.2f", avgTimeMs) + " ms");
-        System.out.println("Average moves: " + String.format("%.2f", avgMoves));
+        log.info("All {} iterations successful!", repetitions);
+        log.info("Total time: {} ms", totalTimeMs);
+        log.info("Average time: {} ms", String.format("%.2f", avgTimeMs));
+        log.info("Average moves: {}", String.format("%.2f", avgMoves));
 
         return true;
     }

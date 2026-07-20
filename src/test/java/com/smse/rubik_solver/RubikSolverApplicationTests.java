@@ -82,4 +82,26 @@ class RubikSolverApplicationTests {
 		assertTrue(originalCopy.isCubeCompleted(), "Cube should be solved after applying the solution moves");
 	}
 
+	@Test
+	@DisplayName("Shortcut DFS solves a lightly scrambled cube in few moves")
+	void shortcutSolvesLightScramble() {
+		Cube cube = cubeService.createSolvedCube();
+		// 3-ruchowy scramble ukladalny w skrocie (<= SHORTCUT_MAX_DEPTH)
+		List<String> scramble = List.of("R", "U", "F");
+		cubeService.applyMoves(cube, scramble);
+
+		assertTrue(validationService.isCubeValid(cube), "Scrambled cube should be valid");
+
+		Cube originalCopy = deepCopyCube(cube);
+		List<String> solutionMoves = cubeService.solve(cube);
+
+		assertNotNull(solutionMoves, "Solver should return a list of moves");
+		assertFalse(solutionMoves.isEmpty(), "Solution should not be empty for a scrambled cube");
+		assertTrue(solutionMoves.size() <= 6,
+				"Shortcut should find a short solution, got " + solutionMoves.size() + ": " + solutionMoves);
+
+		cubeService.applyMoves(originalCopy, solutionMoves);
+		assertTrue(originalCopy.isCubeCompleted(), "Cube should be solved after applying the solution moves");
+	}
+
 }

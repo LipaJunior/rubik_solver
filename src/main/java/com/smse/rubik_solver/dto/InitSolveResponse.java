@@ -8,6 +8,6 @@ import lombok.Data;
 @Data
 @Builder
 public class InitSolveResponse {
-    private String sessionID;
+    private String sessionId;
     private List<String> moves;
 }

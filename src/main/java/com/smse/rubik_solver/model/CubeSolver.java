@@ -4,8 +4,24 @@ import java.util.*;
 
 public class CubeSolver {
 
+    // Maksymalna glebokosc (w ruchach polobrotowych) dla skrotu DFS na starcie.
+    // Kostki dajace sie ulozyc w tylu ruchach omijaja metode LBL, ktora robilaby
+    // ich znacznie wiecej. Kazdy ruch to U/D/R/L/F/B jako obrot, obrot odwrotny
+    // lub podwojny (liczony jako jeden krok).
+    private static final int SHORTCUT_MAX_DEPTH = 4;
+
+    private static final char[] SHORTCUT_FACES = { 'U', 'D', 'R', 'L', 'F', 'B' };
+
     public List<String> solveCube(Cube cube) {
         cube.initArrays();
+
+        // Skrot: sprobuj ulozyc cala kostke w kilku ruchach, zanim ruszy LBL.
+        List<String> shortcut = solveWithShortcut(cube);
+        if (shortcut != null) {
+            cube.makeMovesFromList(shortcut);
+            cube.syncToLists();
+            return optimizeMoves(shortcut);
+        }
 
         List<String> allMoves = new ArrayList<>();
 
@@ -15,6 +31,141 @@ public class CubeSolver {
         cube.syncToLists();
 
         return optimizeMoves(allMoves);
+    }
+
+    // Iteracyjne poglebianie: zwraca najkrotsza sekwencje pojedynczych ruchow
+    // ukladajaca cala kostke, albo null jesli nie znaleziono w limicie glebokosci.
+    private List<String> solveWithShortcut(Cube cube) {
+        if (cube.isCubeCompleted()) {
+            return new ArrayList<>();
+        }
+
+        for (int limit = 1; limit <= SHORTCUT_MAX_DEPTH; limit++) {
+            List<String> path = new ArrayList<>();
+            if (shortcutDfs(cube, path, limit, ' ')) {
+                return path;
+            }
+        }
+        return null;
+    }
+
+    // Przeszukiwanie make/undo na jednej kostce (bez kopiowania i bez syncToLists),
+    // wolajac bezposrednio metody obrotu operujace na tablicach - to kluczowe dla
+    // wydajnosci, bo wezlow sa setki tysiecy. Po znalezieniu rozwiazania ruchy sa
+    // cofane w trakcie zwijania rekurencji, wiec kostka wraca do stanu wejsciowego,
+    // a `path` zachowuje pelna sekwencje.
+    private boolean shortcutDfs(Cube cube, List<String> path, int remaining, char lastFace) {
+        if (cube.isCubeCompleted()) {
+            return true;
+        }
+        if (remaining == 0) {
+            return false;
+        }
+
+        for (char face : SHORTCUT_FACES) {
+            // Dwa kolejne ruchy tej samej sciany zawsze da sie polaczyc w jeden,
+            // wiec ich nie rozwazamy osobno.
+            if (face == lastFace) {
+                continue;
+            }
+
+            for (int kind = 0; kind < 3; kind++) {
+                List<String> tokens = shortcutTokens(face, kind);
+
+                applyShortcutMove(cube, face, kind);
+                path.addAll(tokens);
+
+                boolean found = shortcutDfs(cube, path, remaining - 1, face);
+
+                applyShortcutMove(cube, face, inverseKind(kind));
+                if (found) {
+                    return true;
+                }
+                for (int k = 0; k < tokens.size(); k++) {
+                    path.remove(path.size() - 1);
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // kind: 0 = obrot, 1 = obrot odwrotny, 2 = podwojny (jako dwa pojedyncze ruchy,
+    // dzieki czemu wynik pozostaje zgodny z makeMovesFromList i frontendem).
+    private List<String> shortcutTokens(char face, int kind) {
+        String f = String.valueOf(face);
+        switch (kind) {
+            case 0:
+                return Collections.singletonList(f);
+            case 1:
+                return Collections.singletonList(f + "'");
+            default:
+                return Arrays.asList(f, f);
+        }
+    }
+
+    private int inverseKind(int kind) {
+        if (kind == 0)
+            return 1; // obrot <-> obrot odwrotny
+        if (kind == 1)
+            return 0;
+        return 2; // podwojny jest wlasna odwrotnoscia
+    }
+
+    private void applyShortcutMove(Cube cube, char face, int kind) {
+        switch (kind) {
+            case 0:
+                turn(cube, face, false);
+                break;
+            case 1:
+                turn(cube, face, true);
+                break;
+            default:
+                turn(cube, face, false);
+                turn(cube, face, false);
+                break;
+        }
+    }
+
+    private void turn(Cube cube, char face, boolean prime) {
+        switch (face) {
+            case 'U':
+                if (prime)
+                    cube.moveUprim();
+                else
+                    cube.moveU();
+                break;
+            case 'D':
+                if (prime)
+                    cube.moveDprim();
+                else
+                    cube.moveD();
+                break;
+            case 'R':
+                if (prime)
+                    cube.moveRprim();
+                else
+                    cube.moveR();
+                break;
+            case 'L':
+                if (prime)
+                    cube.moveLprim();
+                else
+                    cube.moveL();
+                break;
+            case 'F':
+                if (prime)
+                    cube.moveFprim();
+                else
+                    cube.moveF();
+                break;
+            case 'B':
+                if (prime)
+                    cube.moveBprim();
+                else
+                    cube.moveB();
+                break;
+        }
     }
 
     public List<String> solveLastLayer(Cube cube) {
@@ -932,34 +1083,40 @@ public class CubeSolver {
         return moves;
     }
 
+    private static final List<String> DFS_MOVES = Arrays.asList(
+            "U", "D", "R", "L", "F", "B",
+            "U'", "D'", "R'", "L'", "F'", "B'");
+
+    // make/undo na jednej kostce zamiast deepCopy na kazdym wezle. Po zakonczeniu
+    // (sukces lub porazka) kostka jest przywracana do stanu wejsciowego, bo ruchy
+    // stosuje dopiero prepareForSolvingWhiteCross.
     private List<String> dfs(Cube cube, List<String> path, int depth, int maxDepth) {
         if (isWhiteEdgesPrepared(cube)) {
-            return path;
+            return new ArrayList<>(path);
         }
 
         if (depth >= maxDepth) {
             return null;
         }
 
-        List<String> moves = Arrays.asList(
-                "U", "D", "R", "L", "F", "B",
-                "U'", "D'", "R'", "L'", "F'", "B'");
-
-        for (String move : moves) {
+        for (String move : DFS_MOVES) {
             if (!isMoveAllowed(path, move)) {
                 continue;
             }
 
-            Cube newCube = deepCopyCube(cube);
-            newCube.makeMovesFromList(Collections.singletonList(move));
+            char face = move.charAt(0);
+            boolean prime = move.endsWith("'");
 
-            List<String> newPath = new ArrayList<>(path);
-            newPath.add(move);
+            turn(cube, face, prime);
+            path.add(move);
 
-            List<String> result = dfs(newCube, newPath, depth + 1, maxDepth);
+            List<String> result = dfs(cube, path, depth + 1, maxDepth);
+
+            turn(cube, face, !prime); // cofnij ruch
             if (result != null) {
                 return result;
             }
+            path.remove(path.size() - 1);
         }
 
         return null;
@@ -1019,25 +1176,5 @@ public class CubeSolver {
             count++;
 
         return Math.min(count, 4);
-    }
-
-    private Cube deepCopyCube(Cube original) {
-        Cube copy = new Cube();
-        copy.setUp(deepCopyFace(original.getUp()));
-        copy.setFront(deepCopyFace(original.getFront()));
-        copy.setBack(deepCopyFace(original.getBack()));
-        copy.setLeft(deepCopyFace(original.getLeft()));
-        copy.setRight(deepCopyFace(original.getRight()));
-        copy.setDown(deepCopyFace(original.getDown()));
-        copy.initArrays();
-        return copy;
-    }
-
-    private List<List<Color>> deepCopyFace(List<List<Color>> face) {
-        List<List<Color>> newFace = new ArrayList<>();
-        for (List<Color> row : face) {
-            newFace.add(new ArrayList<>(row));
-        }
-        return newFace;
     }
 }

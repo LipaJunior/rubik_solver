@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Slf4j
 public class Cube {
 
     private List<List<Color>> up;
@@ -465,7 +467,7 @@ public class Cube {
                     moveBprim();
                     break;
                 default:
-                    System.out.println("Unknown move: " + move);
+                    log.warn("Unknown move: {}", move);
             }
         }
         syncToLists();
