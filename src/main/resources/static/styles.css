@@ -474,22 +474,6 @@ header p {
     }
 }
 
-/* Animacja konfetti */
-@keyframes confetti {
-    0% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(0.5) rotate(0deg);
-    }
-    50% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1.2) rotate(180deg);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(1.5) rotate(360deg);
-    }
-}
-
 /* Loading spinner */
 .loading {
     display: inline-block;

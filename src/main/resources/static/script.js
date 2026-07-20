@@ -9,6 +9,10 @@ class RubikCubeSolver {
         this.isPaintMode = false;
         this.selectedColor = 'W';
         this.isScramblingPhase = false;
+        // Blokada serializujaca pojedyncze ruchy - zapobiega wyscigom, gdy
+        // rownolegle leci odtwarzanie i klikany jest "Next Step" (lub szybkie
+        // wielokrotne klikniecia), przez co ruchy bazowaly na starym stanie.
+        this.isBusy = false;
         
         this.initializeCube();
         this.setupEventListeners();
@@ -153,6 +157,20 @@ class RubikCubeSolver {
             this.showStatus(`Move ${move} executed`, 'success');
         } else {
             this.showStatus(`Error executing move: ${move}`, 'error');
+        }
+    }
+
+    // Reczny ruch (przyciski/klawiatura) - serializowany ta sama blokada co Next Step,
+    // zeby szybkie klikniecia nie nadpisywaly sie nawzajem, i zablokowany w trakcie
+    // odtwarzania rozwiazania.
+    async doManualMove(move) {
+        if (this.isPlayingSolution || this.isBusy) return;
+
+        this.isBusy = true;
+        try {
+            await this.makeMove(move);
+        } finally {
+            this.isBusy = false;
         }
     }
 
@@ -418,41 +436,11 @@ class RubikCubeSolver {
         // Add solved cube class
         const cubeContainer = document.querySelector('.cube-net');
         cubeContainer.classList.add('solved-cube');
-        
+
         // Add solved cube animation
         this.animateSolvedCube();
-        
-        // Add visual success effect
-        this.showSuccessEffect();
-        
-        this.showStatus('🎉 Congratulations! Cube has been solved!', 'success');
-    }
 
-    // Visual success effect
-    showSuccessEffect() {
-        // Add confetti effect (simple)
-        const container = document.querySelector('.container');
-        const confetti = document.createElement('div');
-        confetti.innerHTML = '🎉✨🎊✨🎉';
-        confetti.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 3rem;
-            z-index: 1000;
-            pointer-events: none;
-            animation: confetti 2s ease-out forwards;
-        `;
-        
-        container.appendChild(confetti);
-        
-        // Remove after animation
-        setTimeout(() => {
-            if (confetti.parentNode) {
-                confetti.parentNode.removeChild(confetti);
-            }
-        }, 2000);
+        this.showStatus('Congratulations! Cube has been solved!', 'success');
     }
 
     // Cube solving
@@ -516,34 +504,39 @@ class RubikCubeSolver {
         });
 
         playBtn.disabled = false;
-        stepBtn.disabled = false;
+        // Krokowanie zablokowane w trakcie odtwarzania (patrz playSolution).
+        stepBtn.disabled = this.isPlayingSolution;
     }
 
     // Solution playback
     async playSolution() {
-        if (this.isPlayingSolution || this.currentMoveIndex >= this.solutionMoves.length) {
+        // Nie startuj, gdy juz gra, gdy trwa pojedynczy ruch (Next Step), albo gdy
+        // rozwiazanie jest juz odtworzone do konca.
+        if (this.isPlayingSolution || this.isBusy
+                || this.currentMoveIndex >= this.solutionMoves.length) {
             return;
         }
 
         this.isPlayingSolution = true;
         const playBtn = document.getElementById('play-solution-btn');
+        const stepBtn = document.getElementById('step-solution-btn');
         playBtn.textContent = '⏸️ Pause';
-        playBtn.onclick = () => this.pauseSolution();
+        stepBtn.disabled = true; // brak recznego krokowania w trakcie odtwarzania
 
         while (this.currentMoveIndex < this.solutionMoves.length && this.isPlayingSolution) {
             const move = this.solutionMoves[this.currentMoveIndex];
             await this.makeMove(move);
             this.currentMoveIndex++;
             this.updateSolutionDisplay();
-            
+
             // Short pause between moves
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
         this.isPlayingSolution = false;
         playBtn.textContent = '▶️ Play Solution';
-        playBtn.onclick = () => this.playSolution();
-        
+        stepBtn.disabled = this.currentMoveIndex >= this.solutionMoves.length;
+
         if (this.currentMoveIndex >= this.solutionMoves.length) {
             // Check if cube is solved and add effects
             if (this.isCubeSolved()) {
@@ -557,26 +550,40 @@ class RubikCubeSolver {
     pauseSolution() {
         this.isPlayingSolution = false;
         const playBtn = document.getElementById('play-solution-btn');
+        const stepBtn = document.getElementById('step-solution-btn');
         playBtn.textContent = '▶️ Play Solution';
-        playBtn.onclick = () => this.playSolution();
+        stepBtn.disabled = this.currentMoveIndex >= this.solutionMoves.length;
         this.showStatus('Solution paused', 'info');
     }
 
     // Next solution step
     async nextStep() {
+        // Nie krokuj w trakcie odtwarzania ani gdy inny ruch wlasnie trwa.
+        if (this.isPlayingSolution || this.isBusy) {
+            return;
+        }
         if (this.currentMoveIndex >= this.solutionMoves.length) {
-            // Check if cube is solved and add effects
-            if (this.isCubeSolved()) {
-                this.showSolvedEffects();
-            }
-            this.showStatus('Solution completed!', 'success');
+            // Juz na koncu - efekt odpalil sie przy ostatnim ruchu, nic nie rob.
             return;
         }
 
-        const move = this.solutionMoves[this.currentMoveIndex];
-        await this.makeMove(move);
-        this.currentMoveIndex++;
-        this.updateSolutionDisplay();
+        this.isBusy = true;
+        try {
+            const move = this.solutionMoves[this.currentMoveIndex];
+            await this.makeMove(move);
+            this.currentMoveIndex++;
+            this.updateSolutionDisplay();
+
+            // Jesli to byl ostatni ruch - pokaz efekt od razu (bez dodatkowego klikniecia).
+            if (this.currentMoveIndex >= this.solutionMoves.length) {
+                this.showStatus('Solution completed!', 'success');
+                if (this.isCubeSolved()) {
+                    this.showSolvedEffects();
+                }
+            }
+        } finally {
+            this.isBusy = false;
+        }
     }
 
     // Status display
@@ -598,7 +605,7 @@ class RubikCubeSolver {
         document.querySelectorAll('.move-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const move = e.target.dataset.move;
-                this.makeMove(move);
+                this.doManualMove(move);
             });
         });
 
@@ -633,9 +640,13 @@ class RubikCubeSolver {
             this.loadRandomCube();
         });
 
-        // Play solution button
+        // Play solution button (toggluje play/pauza - jeden handler, bez onclick)
         document.getElementById('play-solution-btn').addEventListener('click', () => {
-            this.playSolution();
+            if (this.isPlayingSolution) {
+                this.pauseSolution();
+            } else {
+                this.playSolution();
+            }
         });
 
         // Next step button
@@ -678,7 +689,7 @@ class RubikCubeSolver {
             const move = keyMap[e.key];
             if (move) {
                 e.preventDefault();
-                this.makeMove(move);
+                this.doManualMove(move);
             }
         });
     }
