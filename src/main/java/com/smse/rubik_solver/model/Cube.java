@@ -172,127 +172,67 @@ public class Cube {
 
     void moveR() {
         rotateClockWise(B);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = W[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = W[i][2];
             W[i][2] = R[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
             R[i][2] = Y[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
             Y[i][2] = O[2 - i][0];
-        }
-        for (int i = 0; i < 3; i++) {
-            O[2 - i][0] = temp[i];
+            O[2 - i][0] = temp;
         }
     }
 
     void moveRprim() {
         rotateAntiClockWise(B);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = W[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = W[i][2];
             W[i][2] = O[2 - i][0];
-        }
-        for (int i = 0; i < 3; i++) {
             O[2 - i][0] = Y[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
             Y[i][2] = R[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
-            R[i][2] = temp[i];
+            R[i][2] = temp;
         }
     }
 
     void moveL() {
         rotateClockWise(G);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = W[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = W[i][0];
             W[i][0] = O[2 - i][2];
-        }
-        for (int i = 0; i < 3; i++) {
             O[2 - i][2] = Y[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
             Y[i][0] = R[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
-            R[i][0] = temp[i];
+            R[i][0] = temp;
         }
     }
 
     void moveLprim() {
         rotateAntiClockWise(G);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = W[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = W[i][0];
             W[i][0] = R[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
             R[i][0] = Y[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
             Y[i][0] = O[2 - i][2];
-        }
-        for (int i = 0; i < 3; i++) {
-            O[2 - i][2] = temp[i];
+            O[2 - i][2] = temp;
         }
     }
 
     void moveU() {
         rotateClockWise(W);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = R[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = R[0][i];
             R[0][i] = B[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
             B[0][i] = O[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
             O[0][i] = G[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
-            G[0][i] = temp[i];
+            G[0][i] = temp;
         }
     }
 
     void moveUprim() {
         rotateAntiClockWise(W);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = R[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = R[0][i];
             R[0][i] = G[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
             G[0][i] = O[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
             O[0][i] = B[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
-            B[0][i] = temp[i];
+            B[0][i] = temp;
         }
     }
 
@@ -338,41 +278,23 @@ public class Cube {
 
     void moveD() {
         rotateClockWise(Y);
-        Color[] temp = new Color[3];
         for (int i = 0; i < 3; i++) {
-            temp[i] = R[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = R[2][i];
             R[2][i] = G[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
             G[2][i] = O[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
             O[2][i] = B[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
-            B[2][i] = temp[i];
+            B[2][i] = temp;
         }
     }
 
     void moveDprim() {
         rotateAntiClockWise(Y);
-        Color[] temp = new Color[3];
         for (int i = 0; i < 3; i++) {
-            temp[i] = R[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = R[2][i];
             R[2][i] = B[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
             B[2][i] = O[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
             O[2][i] = G[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
-            G[2][i] = temp[i];
+            G[2][i] = temp;
         }
     }
 

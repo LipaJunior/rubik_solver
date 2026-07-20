@@ -82,6 +82,55 @@ class RubikSolverApplicationTests {
 		assertTrue(originalCopy.isCubeCompleted(), "Cube should be solved after applying the solution moves");
 	}
 
+	private static String serialize(Cube c) {
+		StringBuilder sb = new StringBuilder();
+		List<List<List<Color>>> faces = List.of(
+				c.getUp(), c.getFront(), c.getRight(), c.getLeft(), c.getBack(), c.getDown());
+		for (List<List<Color>> f : faces)
+			for (List<Color> row : f)
+				for (Color col : row)
+					sb.append(col);
+		return sb.toString();
+	}
+
+	@Test
+	@DisplayName("Each single move produces the exact expected facelet state")
+	void singleMovesMatchGolden() {
+		String[][] golden = {
+				{ "U", "WWWWWWWWWBBBRRRRRROOOBBBBBBRRRGGGGGGGGGOOOOOOYYYYYYYYY" },
+				{ "U'", "WWWWWWWWWGGGRRRRRRRRRBBBBBBOOOGGGGGGBBBOOOOOOYYYYYYYYY" },
+				{ "D", "WWWWWWWWWRRRRRRGGGBBBBBBRRRGGGGGGOOOOOOOOOBBBYYYYYYYYY" },
+				{ "D'", "WWWWWWWWWRRRRRRBBBBBBBBBOOOGGGGGGRRROOOOOOGGGYYYYYYYYY" },
+				{ "R", "WWRWWRWWRRRYRRYRRYBBBBBBBBBGGGGGGGGGWOOWOOWOOYYOYYOYYO" },
+				{ "R'", "WWOWWOWWORRWRRWRRWBBBBBBBBBGGGGGGGGGYOOYOOYOOYYRYYRYYR" },
+				{ "L", "OWWOWWOWWWRRWRRWRRBBBBBBBBBGGGGGGGGGOOYOOYOOYRYYRYYRYY" },
+				{ "L'", "RWWRWWRWWYRRYRRYRRBBBBBBBBBGGGGGGGGGOOWOOWOOWOYYOYYOYY" },
+				{ "F", "WWWWWWGGGRRRRRRRRRWBBWBBWBBGGYGGYGGYOOOOOOOOOBBBYYYYYY" },
+				{ "F'", "WWWWWWBBBRRRRRRRRRYBBYBBYBBGGWGGWGGWOOOOOOOOOGGGYYYYYY" },
+				{ "B", "BBBWWWWWWRRRRRRRRRBBYBBYBBYWGGWGGWGGOOOOOOOOOYYYYYYGGG" },
+				{ "B'", "GGGWWWWWWRRRRRRRRRBBWBBWBBWYGGYGGYGGOOOOOOOOOYYYYYYBBB" },
+		};
+
+		for (String[] g : golden) {
+			Cube cube = cubeService.createSolvedCube();
+			cubeService.applyMoves(cube, List.of(g[0]));
+			assertTrue(g[1].equals(serialize(cube)),
+					"Move " + g[0] + " expected " + g[1] + " but got " + serialize(cube));
+		}
+	}
+
+	@Test
+	@DisplayName("Parity check rejects an impossible single edge swap")
+	void rejectsSingleEdgeSwap() {
+		Cube cube = cubeService.createSolvedCube();
+		// zamien krawedzie UF i UR (gorne naklejki obie biale, wiec rozroznia je
+		// naklejki boczne): pojedyncza transpozycja = nieparzysta permutacja = nielegalna
+		cube.getFront().get(0).set(1, Color.B); // R -> B
+		cube.getRight().get(0).set(1, Color.R); // B -> R
+
+		assertFalse(validationService.isCubeValid(cube), "Single edge swap must be rejected");
+	}
+
 	@Test
 	@DisplayName("Shortcut DFS solves a lightly scrambled cube in few moves")
 	void shortcutSolvesLightScramble() {
