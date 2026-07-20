@@ -436,41 +436,11 @@ class RubikCubeSolver {
         // Add solved cube class
         const cubeContainer = document.querySelector('.cube-net');
         cubeContainer.classList.add('solved-cube');
-        
+
         // Add solved cube animation
         this.animateSolvedCube();
-        
-        // Add visual success effect
-        this.showSuccessEffect();
-        
-        this.showStatus('🎉 Congratulations! Cube has been solved!', 'success');
-    }
 
-    // Visual success effect
-    showSuccessEffect() {
-        // Add confetti effect (simple)
-        const container = document.querySelector('.container');
-        const confetti = document.createElement('div');
-        confetti.innerHTML = '🎉✨🎊✨🎉';
-        confetti.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 3rem;
-            z-index: 1000;
-            pointer-events: none;
-            animation: confetti 2s ease-out forwards;
-        `;
-        
-        container.appendChild(confetti);
-        
-        // Remove after animation
-        setTimeout(() => {
-            if (confetti.parentNode) {
-                confetti.parentNode.removeChild(confetti);
-            }
-        }, 2000);
+        this.showStatus('Congratulations! Cube has been solved!', 'success');
     }
 
     // Cube solving
@@ -593,11 +563,7 @@ class RubikCubeSolver {
             return;
         }
         if (this.currentMoveIndex >= this.solutionMoves.length) {
-            // Check if cube is solved and add effects
-            if (this.isCubeSolved()) {
-                this.showSolvedEffects();
-            }
-            this.showStatus('Solution completed!', 'success');
+            // Juz na koncu - efekt odpalil sie przy ostatnim ruchu, nic nie rob.
             return;
         }
 
@@ -607,6 +573,14 @@ class RubikCubeSolver {
             await this.makeMove(move);
             this.currentMoveIndex++;
             this.updateSolutionDisplay();
+
+            // Jesli to byl ostatni ruch - pokaz efekt od razu (bez dodatkowego klikniecia).
+            if (this.currentMoveIndex >= this.solutionMoves.length) {
+                this.showStatus('Solution completed!', 'success');
+                if (this.isCubeSolved()) {
+                    this.showSolvedEffects();
+                }
+            }
         } finally {
             this.isBusy = false;
         }
