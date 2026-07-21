@@ -13,9 +13,12 @@ class RubikCubeSolver {
         // rownolegle leci odtwarzanie i klikany jest "Next Step" (lub szybkie
         // wielokrotne klikniecia), przez co ruchy bazowaly na starym stanie.
         this.isBusy = false;
-        
+        this.viewMode = '2d';
+
         this.initializeCube();
         this.setupEventListeners();
+        this.setup3DRotation();
+        this.setView('2d');
         this.resetCube();
         
         // Initialize default selected color without showing status message
@@ -55,47 +58,95 @@ class RubikCubeSolver {
         return colorMap[color] || 'color-W';
     }
 
-    // Cube rendering
+    // Cube rendering - wypelnia zarowno siatke 2D jak i kostke 3D z tych samych danych
     renderCube() {
         const faces = ['up', 'front', 'right', 'left', 'back', 'down'];
-        
+
         // Remove solved cube class if cube is not solved
         const cubeContainer = document.querySelector('.cube-net');
         if (cubeContainer) {
             cubeContainer.classList.remove('solved-cube');
         }
-        
-        faces.forEach(faceName => {
-            const faceElement = document.getElementById(`${faceName}-face`);
-            if (!faceElement) return;
 
-            faceElement.innerHTML = '';
-            
-            for (let row = 0; row < 3; row++) {
-                for (let col = 0; col < 3; col++) {
-                    const square = document.createElement('div');
-                    square.className = 'cube-square';
-                    
-                    // Add attributes for position identification
-                    square.dataset.face = faceName;
-                    square.dataset.row = row;
-                    square.dataset.col = col;
-                    
-                    const color = this.currentCube[faceName][row][col];
-                    if (color) {
-                        square.classList.add(this.getColorClass(color));
-                    }
-                    
-                    // Add click handling in paint mode
-                    if (this.isPaintMode) {
-                        square.addEventListener('click', (e) => {
-                            this.paintSquare(faceName, row, col);
-                        });
-                    }
-                    
-                    faceElement.appendChild(square);
+        faces.forEach(faceName => {
+            const el2d = document.getElementById(`${faceName}-face`);
+            if (el2d) this.fillGrid(el2d, faceName, 'cube-square');
+
+            const el3d = document.getElementById(`${faceName}-face-3d`);
+            if (el3d) this.fillGrid(el3d, faceName, 'cube3d-square');
+        });
+    }
+
+    // Wypelnia pojedyncza siatke 3x3 naklejkami danej sciany
+    fillGrid(gridElement, faceName, squareClass) {
+        gridElement.innerHTML = '';
+
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 3; col++) {
+                const square = document.createElement('div');
+                square.className = squareClass;
+
+                // Add attributes for position identification
+                square.dataset.face = faceName;
+                square.dataset.row = row;
+                square.dataset.col = col;
+
+                const color = this.currentCube[faceName][row][col];
+                if (color) {
+                    square.classList.add(this.getColorClass(color));
                 }
+
+                // Add click handling in paint mode
+                if (this.isPaintMode) {
+                    square.addEventListener('click', () => {
+                        this.paintSquare(faceName, row, col);
+                    });
+                }
+
+                gridElement.appendChild(square);
             }
+        }
+    }
+
+    // Przelaczanie widoku 2D / 3D
+    setView(mode) {
+        this.viewMode = mode;
+        document.querySelector('.cube-net').style.display = mode === '2d' ? 'grid' : 'none';
+        document.querySelector('.cube-3d-scene').style.display = mode === '3d' ? 'flex' : 'none';
+        document.getElementById('view-2d-btn').classList.toggle('active', mode === '2d');
+        document.getElementById('view-3d-btn').classList.toggle('active', mode === '3d');
+    }
+
+    // Obracanie kostki 3D myszka
+    setup3DRotation() {
+        const scene = document.querySelector('.cube-3d-scene');
+        const cube = document.querySelector('.cube-3d');
+        if (!scene || !cube) return;
+
+        this.rotX = -30;
+        this.rotY = -45;
+        let dragging = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        const apply = () => {
+            cube.style.transform = `rotateX(${this.rotX}deg) rotateY(${this.rotY}deg)`;
+        };
+        apply();
+
+        scene.addEventListener('mousedown', (e) => {
+            dragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+        window.addEventListener('mouseup', () => { dragging = false; });
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            this.rotY += (e.clientX - lastX) * 0.5;
+            this.rotX -= (e.clientY - lastY) * 0.5;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            apply();
         });
     }
 
@@ -638,6 +689,14 @@ class RubikCubeSolver {
         // Random button
         document.getElementById('random-btn').addEventListener('click', () => {
             this.loadRandomCube();
+        });
+
+        // View toggle 2D / 3D
+        document.getElementById('view-2d-btn').addEventListener('click', () => {
+            this.setView('2d');
+        });
+        document.getElementById('view-3d-btn').addEventListener('click', () => {
+            this.setView('3d');
         });
 
         // Play solution button (toggluje play/pauza - jeden handler, bez onclick)
