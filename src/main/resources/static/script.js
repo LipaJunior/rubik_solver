@@ -117,7 +117,7 @@ class RubikCubeSolver {
         document.getElementById('view-3d-btn').classList.toggle('active', mode === '3d');
     }
 
-    // Obracanie kostki 3D myszka
+    // Obracanie kostki 3D - mysz (desktop) i dotyk (telefon/tablet)
     setup3DRotation() {
         const scene = document.querySelector('.cube-3d-scene');
         const cube = document.querySelector('.cube-3d');
@@ -134,20 +134,35 @@ class RubikCubeSolver {
         };
         apply();
 
-        scene.addEventListener('mousedown', (e) => {
-            dragging = true;
-            lastX = e.clientX;
-            lastY = e.clientY;
-        });
-        window.addEventListener('mouseup', () => { dragging = false; });
-        window.addEventListener('mousemove', (e) => {
+        const start = (x, y) => { dragging = true; lastX = x; lastY = y; };
+        const move = (x, y) => {
             if (!dragging) return;
-            this.rotY += (e.clientX - lastX) * 0.5;
-            this.rotX -= (e.clientY - lastY) * 0.5;
-            lastX = e.clientX;
-            lastY = e.clientY;
+            this.rotY += (x - lastX) * 0.5;
+            this.rotX -= (y - lastY) * 0.5;
+            lastX = x;
+            lastY = y;
             apply();
-        });
+        };
+        const end = () => { dragging = false; };
+
+        // Mysz
+        scene.addEventListener('mousedown', (e) => start(e.clientX, e.clientY));
+        window.addEventListener('mousemove', (e) => move(e.clientX, e.clientY));
+        window.addEventListener('mouseup', end);
+
+        // Dotyk
+        scene.addEventListener('touchstart', (e) => {
+            const t = e.touches[0];
+            start(t.clientX, t.clientY);
+        }, { passive: true });
+        scene.addEventListener('touchmove', (e) => {
+            if (!dragging) return;
+            e.preventDefault(); // nie przewijaj strony podczas obracania kostki
+            const t = e.touches[0];
+            move(t.clientX, t.clientY);
+        }, { passive: false });
+        window.addEventListener('touchend', end);
+        window.addEventListener('touchcancel', end);
     }
 
     // API communication

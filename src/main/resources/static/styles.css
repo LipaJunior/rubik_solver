@@ -158,6 +158,7 @@ header p {
     perspective: 1000px;
     cursor: grab;
     user-select: none;
+    touch-action: none; /* obracanie dotykiem nie przewija strony */
 }
 
 .cube-3d-scene:active {
