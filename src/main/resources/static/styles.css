@@ -175,8 +175,13 @@ header p {
 
 .cube3d-face {
     position: absolute;
-    width: 150px;
-    height: 150px;
+    /* Sciany sa ciut wieksze od kostki (150px) i przesuniete o polowe naddatku,
+       dzieki czemu zachodza na siebie na krawedziach - znika przeswitujace
+       wnetrze w rogach. translateZ (75px = polowa 150) pozostaje bez zmian. */
+    width: 156px;
+    height: 156px;
+    top: -3px;
+    left: -3px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
