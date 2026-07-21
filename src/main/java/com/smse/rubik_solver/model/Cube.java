@@ -345,6 +345,39 @@ public class Cube {
         moveUprim();
     }
 
+    private static Color[][] rotate180(Color[][] face) {
+        Color[][] r = new Color[3][3];
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                r[i][j] = face[2 - i][2 - j];
+        return r;
+    }
+
+    // Obrot CALEJ kostki wokol osi pionowej (U-D), w kierunku ruchu U.
+    // Gora/dol obracaja sie w miejscu, sciany boczne cykluja bez obrotu wlasnego.
+    void rotateY() {
+        rotateClockWise(W);
+        rotateAntiClockWise(Y);
+        Color[][] t = R;
+        R = B;
+        B = O;
+        O = G;
+        G = t;
+    }
+
+    // Obrot CALEJ kostki wokol osi lewo-prawo (L-R); przod jedzie w dol.
+    // Prawa/lewa obracaja sie w miejscu; pierscien U-F-D-B cykluje (z odbiciami
+    // dla scian przechodzacych przez szew gora-tyl). Kierunki dostrojone testami.
+    void rotateX() {
+        rotateAntiClockWise(B);
+        rotateClockWise(G);
+        Color[][] t = W;
+        W = rotate180(O);
+        O = rotate180(Y);
+        Y = R;
+        R = t;
+    }
+
     public void makeMovesFromList(List<String> moves) {
         if (moves == null || moves.isEmpty()) {
             return;

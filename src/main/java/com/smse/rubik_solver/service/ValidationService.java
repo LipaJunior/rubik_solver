@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.smse.rubik_solver.model.Color;
 import com.smse.rubik_solver.model.Cube;
+import com.smse.rubik_solver.model.CubeOrientation;
 
 
 @Service
@@ -20,9 +21,17 @@ public class ValidationService {
     public boolean isCubeValid(Cube cube) {
         cube.initArrays();
 
-        return (areCentersValid(cube) && areCornersValid(cube) && areEdgesValid(cube)
-                && areCornerOrientationsValid(cube) && areEdgesOrientationsValid(cube)
-                && checkParity(cube));
+        // Zaakceptuj poprawna kostke niezaleznie od orientacji: najpierw sprowadz ja
+        // do orientacji kanonicznej (null => srodki nie tworza poprawnego schematu),
+        // a pozostale reguly sprawdz juz na znormalizowanej kostce.
+        Cube canonical = CubeOrientation.toCanonical(cube);
+        if (canonical == null) {
+            return false;
+        }
+
+        return (areCentersValid(canonical) && areCornersValid(canonical) && areEdgesValid(canonical)
+                && areCornerOrientationsValid(canonical) && areEdgesOrientationsValid(canonical)
+                && checkParity(canonical));
     }
 
     private boolean areCentersValid(Cube cube) {

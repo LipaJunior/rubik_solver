@@ -200,6 +200,27 @@ header p {
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.25);
 }
 
+/* Etykieta pozycji sciany (U/D/R/L/F/B) - obraca sie razem z kostka, wiec
+   zawsze wiadomo, ktora sciana jest ktora, niezaleznie od obrotu kamery. */
+.cube3d-face::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: rgba(20, 20, 20, 0.55);
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
+    pointer-events: none;
+}
+
+.f-up::after    { content: "U"; }
+.f-down::after  { content: "D"; }
+.f-front::after { content: "F"; }
+.f-back::after  { content: "B"; }
+.f-right::after { content: "R"; }
+.f-left::after  { content: "L"; }
+
 /* Controls */
 .controls {
     display: grid;

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.smse.rubik_solver.model.Color;
 import com.smse.rubik_solver.model.Cube;
+import com.smse.rubik_solver.model.CubeOrientation;
 import com.smse.rubik_solver.model.CubeSolver;
 
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,16 @@ public class CubeService {
     public List<String> solve(Cube cube) {
         CubeSolver solver = new CubeSolver();
 
-        return solver.solveCube(cube);
+        // Sprowadz do orientacji kanonicznej, rozwiaz, a ruchy przetlumacz z powrotem
+        // na uklad uzytkownika - dzieki temu kostka na ekranie zostaje jak namalowana,
+        // niezaleznie od tego, jak byla obrocona.
+        Cube canonical = CubeOrientation.toCanonical(cube);
+        if (canonical == null) {
+            return solver.solveCube(cube);
+        }
+
+        List<String> canonicalMoves = solver.solveCube(canonical);
+        return CubeOrientation.translate(canonicalMoves, cube);
     }
 
     public Cube applyMoves(Cube cube, List<String> moves) {
