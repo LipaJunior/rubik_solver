@@ -70,15 +70,16 @@
                 </div>
             </div>
 
-            <!-- Cube in 3D (toggled with the 2D net) -->
+            <!-- Cube in 3D (toggled with the 2D net) - budowana z 26 "cubie" w JS -->
             <div class="cube-3d-scene" style="display: none;">
-                <div class="cube-3d">
-                    <div class="cube3d-face f-up" id="up-face-3d"></div>
-                    <div class="cube3d-face f-down" id="down-face-3d"></div>
-                    <div class="cube3d-face f-front" id="front-face-3d"></div>
-                    <div class="cube3d-face f-back" id="back-face-3d"></div>
-                    <div class="cube3d-face f-right" id="right-face-3d"></div>
-                    <div class="cube3d-face f-left" id="left-face-3d"></div>
+                <div class="cube-3d" id="cube-3d">
+                    <!-- cubie dodawane przez JS -->
+                    <div class="face-tag f-up"></div>
+                    <div class="face-tag f-down"></div>
+                    <div class="face-tag f-front"></div>
+                    <div class="face-tag f-back"></div>
+                    <div class="face-tag f-right"></div>
+                    <div class="face-tag f-left"></div>
                 </div>
             </div>
         </div>
@@ -156,7 +157,7 @@
         <!-- Status -->
         <div class="status">
             <div id="status-message" class="status-message">Ready to play!</div>
-            <div id="session-info" class="session-info"></div>
+            <div id="session-info" class="session-info" style="display: none;"></div>
         </div>
     </div>
 

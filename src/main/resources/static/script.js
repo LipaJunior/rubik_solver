@@ -17,6 +17,7 @@ class RubikCubeSolver {
 
         this.initializeCube();
         this.setupEventListeners();
+        this.build3DCube();
         this.setup3DRotation();
         this.setView('2d');
         this.resetCube();
@@ -71,10 +72,71 @@ class RubikCubeSolver {
         faces.forEach(faceName => {
             const el2d = document.getElementById(`${faceName}-face`);
             if (el2d) this.fillGrid(el2d, faceName, 'cube-square');
-
-            const el3d = document.getElementById(`${faceName}-face-3d`);
-            if (el3d) this.fillGrid(el3d, faceName, 'cube3d-square');
         });
+
+        this.paint3DCubies();
+    }
+
+    // Buduje 26 "cubie" (bez srodka) jako male szescianiki. Wywolywane raz;
+    // pozniej tylko przemalowujemy scianki (paint3DCubies).
+    build3DCube() {
+        const container = document.getElementById('cube-3d');
+        if (!container) return;
+
+        this.cubies = {};
+        const S = 50; // odstep miedzy srodkami cubie
+
+        for (let x = -1; x <= 1; x++) {
+            for (let y = -1; y <= 1; y++) {
+                for (let z = -1; z <= 1; z++) {
+                    if (x === 0 && y === 0 && z === 0) continue; // rdzen - pomijamy
+
+                    const cubie = document.createElement('div');
+                    cubie.className = 'cubie';
+                    // CSS y jest "w dol", nasze y jest "w gore" -> minus.
+                    cubie.style.transform = `translate3d(${x * S}px, ${-y * S}px, ${z * S}px)`;
+
+                    const faces = {};
+                    ['up', 'down', 'front', 'back', 'right', 'left'].forEach(dir => {
+                        const f = document.createElement('div');
+                        f.className = 'cubie-face cf-' + dir;
+                        cubie.appendChild(f);
+                        faces[dir] = f;
+                    });
+
+                    container.appendChild(cubie);
+                    this.cubies[`${x},${y},${z}`] = { el: cubie, x, y, z, faces };
+                }
+            }
+        }
+    }
+
+    // Koloruje zewnetrzne scianki cubie na podstawie currentCube. Mapowanie
+    // (sciana,row,col) -> (x,y,z,kierunek) wyprowadzone z geometrii plaskich scian.
+    paint3DCubies() {
+        if (!this.cubies || !this.currentCube) return;
+
+        const cube = this.currentCube;
+        const assign = (x, y, z, dir, faceName, row, col) => {
+            const c = this.cubies[`${x},${y},${z}`];
+            if (!c) return;
+            const f = c.faces[dir];
+            f.className = 'cubie-face cf-' + dir;
+            const color = cube[faceName][row][col];
+            if (color) f.classList.add(this.getColorClass(color));
+            f.onclick = this.isPaintMode ? () => this.paintSquare(faceName, row, col) : null;
+        };
+
+        for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+                assign(c - 1, 1, r - 1, 'up', 'up', r, c);
+                assign(c - 1, -1, 1 - r, 'down', 'down', r, c);
+                assign(c - 1, 1 - r, 1, 'front', 'front', r, c);
+                assign(1 - c, 1 - r, -1, 'back', 'back', r, c);
+                assign(1, 1 - r, 1 - c, 'right', 'right', r, c);
+                assign(-1, 1 - r, c - 1, 'left', 'left', r, c);
+            }
+        }
     }
 
     // Wypelnia pojedyncza siatke 3x3 naklejkami danej sciany
@@ -217,6 +279,10 @@ class RubikCubeSolver {
         });
 
         if (response && response.cube) {
+            // W widoku 3D pokaz obrot warstwy zanim "dociagniemy" do nowego stanu.
+            if (this.viewMode === '3d' && this.cubies) {
+                await this.animateLayerTurn(move);
+            }
             this.currentCube = response.cube;
             this.sessionId = response.sessionId;
             this.renderCube();
@@ -224,6 +290,53 @@ class RubikCubeSolver {
         } else {
             this.showStatus(`Error executing move: ${move}`, 'error');
         }
+    }
+
+    // Animacja obrotu warstwy w 3D: 9 cubie danej warstwy trafia do "pivota"
+    // obracanego wokol srodka kostki o 90 (lub 180) stopni. Po czasie animacji
+    // cubie wracaja, a makeMove przemalowuje je do docelowego stanu (bez skoku).
+    animateLayerTurn(move) {
+        return new Promise(resolve => {
+            const container = document.getElementById('cube-3d');
+            const face = move.charAt(0);
+
+            // Os obrotu (CSS) i znak dla obrotu "zgodnie z ruchem wskazowek" danej sciany.
+            const spec = {
+                U: { axis: 'Y', deg: -90 }, D: { axis: 'Y', deg: 90 },
+                R: { axis: 'X', deg: 90 },  L: { axis: 'X', deg: -90 },
+                F: { axis: 'Z', deg: 90 },  B: { axis: 'Z', deg: -90 }
+            }[face];
+            const inLayer = {
+                U: c => c.y === 1, D: c => c.y === -1,
+                R: c => c.x === 1, L: c => c.x === -1,
+                F: c => c.z === 1, B: c => c.z === -1
+            }[face];
+
+            if (!container || !spec || !inLayer) { resolve(); return; }
+
+            let deg = spec.deg;
+            if (move.endsWith("'")) deg = -deg;
+            if (move.endsWith('2')) deg = 180;
+
+            const layerCubies = Object.values(this.cubies).filter(inLayer);
+            const pivot = document.createElement('div');
+            pivot.className = 'layer-pivot';
+            container.appendChild(pivot);
+            layerCubies.forEach(c => pivot.appendChild(c.el));
+
+            // wymus reflow, potem odpal przejscie
+            void pivot.offsetWidth;
+            pivot.style.transition = 'transform 0.28s ease-in-out';
+            pivot.style.transform = `rotate${spec.axis}(${deg}deg)`;
+
+            // Czekamy na czas trwania (setTimeout dziala tez, gdy transitionend
+            // nie odpali - np. karta w tle). Potem przywracamy cubie.
+            setTimeout(() => {
+                layerCubies.forEach(c => container.appendChild(c.el));
+                pivot.remove();
+                resolve();
+            }, 300);
+        });
     }
 
     // Reczny ruch (przyciski/klawiatura) - serializowany ta sama blokada co Next Step,
@@ -503,10 +616,30 @@ class RubikCubeSolver {
         const cubeContainer = document.querySelector('.cube-net');
         cubeContainer.classList.add('solved-cube');
 
-        // Add solved cube animation
+        // Add solved cube animation (2D)
         this.animateSolvedCube();
 
+        // Efekt w 3D: radosny obrot + poswiata
+        this.celebrate3D();
+
         this.showStatus('Congratulations! Cube has been solved!', 'success');
+    }
+
+    // Animacja ulozenia dla kostki 3D: sprezysty "pop" calej kostki + zielona
+    // poswiata. Czyste animacje CSS (same sie koncza, nie koliduja z obrotem
+    // myszka na inline-transformie kostki).
+    celebrate3D() {
+        const scene = document.querySelector('.cube-3d-scene');
+        const cube = document.querySelector('.cube-3d');
+        if (!cube) return;
+
+        cube.classList.add('solved-glow');
+        if (scene) scene.classList.add('solved-bounce');
+
+        setTimeout(() => {
+            cube.classList.remove('solved-glow');
+            if (scene) scene.classList.remove('solved-bounce');
+        }, 1300);
     }
 
     // Cube solving
@@ -655,14 +788,9 @@ class RubikCubeSolver {
     // Status display
     showStatus(message, type = 'info') {
         const statusElement = document.getElementById('status-message');
-        const sessionElement = document.getElementById('session-info');
-        
+
         statusElement.textContent = message;
         statusElement.className = `status-message ${type}`;
-        
-        if (this.sessionId) {
-            sessionElement.textContent = `Session ID: ${this.sessionId}`;
-        }
     }
 
     // Event listeners configuration

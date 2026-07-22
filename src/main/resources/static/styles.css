@@ -117,7 +117,7 @@ header p {
 .color-B { background-color: #3498db; } /* Blue */
 .color-G { background-color: #2ecc71; } /* Green */
 .color-O { background-color: #f39c12; } /* Orange */
-.color-Y { background-color: #f1c40f; } /* Yellow */
+.color-Y { background-color: #ffe000; } /* Yellow */
 
 /* Widok 2D / 3D - przelacznik */
 .view-toggle {
@@ -171,43 +171,81 @@ header p {
     height: 150px;
     transform-style: preserve-3d;
     transform: rotateX(-30deg) rotateY(-45deg);
+    /* Stabilna warstwa GPU - ogranicza migotanie 3D przy przewijaniu strony. */
+    will-change: transform;
 }
 
-.cube3d-face {
+/* Male "cubie" (26 sztuk) skladajace sie na kostke 3D. Kazda ma 6 scianek;
+   te skierowane na zewnatrz sa kolorowane, wewnetrzne pozostaja ciemne. */
+.cubie {
     position: absolute;
-    /* Sciany sa ciut wieksze od kostki (150px) i przesuniete o polowe naddatku,
-       dzieki czemu zachodza na siebie na krawedziach - znika przeswitujace
-       wnetrze w rogach. translateZ (75px = polowa 150) pozostaje bez zmian. */
-    width: 156px;
-    height: 156px;
-    top: -3px;
-    left: -3px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 3px;
-    padding: 4px;
+    top: 50px;
+    left: 50px;
+    width: 50px;
+    height: 50px;
+    transform-style: preserve-3d;
+}
+
+/* Kazda scianka jest ciut wieksza (52px, offset -1) niz komorka (50px), wiec
+   sciany jednego cubie zachodza w rogach (zamkniete pudelko), a sasiednie cubie
+   sie stykaja - nigdzie nie przeswituje. Ciemna ramka daje szczeline jak w
+   prawdziwej kostce. */
+.cubie-face {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 52px;
+    height: 52px;
     box-sizing: border-box;
-    background: #1a1a1a;
+    border: 3px solid #0a0a0a;
     border-radius: 6px;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
 }
 
-.f-front { transform: translateZ(75px); }
-.f-back  { transform: rotateY(180deg) translateZ(75px); }
-.f-right { transform: rotateY(90deg) translateZ(75px); }
-.f-left  { transform: rotateY(-90deg) translateZ(75px); }
-.f-up    { transform: rotateX(90deg) translateZ(75px); }
-.f-down  { transform: rotateX(-90deg) translateZ(75px); }
-
-.cube3d-square {
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.35);
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.25);
+/* Ciemne tlo tylko dla scianek wewnetrznych (bez klasy koloru) - nie nadpisuje
+   kolorow naklejek zewnetrznych. */
+.cubie-face:not([class*="color-"]) {
+    background: #0a0a0a;
 }
+
+/* Obracana warstwa (na czas animacji ruchu) - obrot wokol srodka kostki. */
+.layer-pivot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+    transform-origin: 75px 75px 0;
+}
+
+.cf-up    { transform: rotateX(90deg)  translateZ(25px); }
+.cf-down  { transform: rotateX(-90deg) translateZ(25px); }
+.cf-front { transform: translateZ(25px); }
+.cf-back  { transform: rotateY(180deg) translateZ(25px); }
+.cf-right { transform: rotateY(90deg)  translateZ(25px); }
+.cf-left  { transform: rotateY(-90deg) translateZ(25px); }
+
+/* Znaczniki pozycji scian (etykiety) - plaskie nakladki tuz nad powierzchnia. */
+.face-tag {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 150px;
+    height: 150px;
+    pointer-events: none;
+}
+
+.f-front { transform: translateZ(76px); }
+.f-back  { transform: rotateY(180deg) translateZ(76px); }
+.f-right { transform: rotateY(90deg) translateZ(76px); }
+.f-left  { transform: rotateY(-90deg) translateZ(76px); }
+.f-up    { transform: rotateX(90deg) translateZ(76px); }
+.f-down  { transform: rotateX(-90deg) translateZ(76px); }
 
 /* Etykieta pozycji sciany (U/D/R/L/F/B) - obraca sie razem z kostka, wiec
    zawsze wiadomo, ktora sciana jest ktora, niezaleznie od obrotu kamery. */
-.cube3d-face::after {
+.face-tag::after {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -217,6 +255,27 @@ header p {
     color: rgba(20, 20, 20, 0.55);
     text-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
     pointer-events: none;
+}
+
+/* Animacja ulozenia w 3D: poswiata + sprezysty "pop" (obie same sie koncza). */
+.cube-3d.solved-glow {
+    animation: cube3dGlow 1.3s ease-out;
+}
+
+@keyframes cube3dGlow {
+    0%, 100% { filter: none; }
+    30%, 70% { filter: drop-shadow(0 0 16px rgba(46, 204, 113, 0.95)); }
+}
+
+.cube-3d-scene.solved-bounce {
+    animation: cube3dBounce 1.3s ease-out;
+}
+
+@keyframes cube3dBounce {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(1.12); }
+    55%  { transform: scale(0.97); }
+    100% { transform: scale(1); }
 }
 
 .f-up::after    { content: "U"; }
