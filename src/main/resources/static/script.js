@@ -192,7 +192,10 @@ class RubikCubeSolver {
         let lastY = 0;
 
         const apply = () => {
-            cube.style.transform = `rotateX(${this.rotX}deg) rotateY(${this.rotY}deg)`;
+            // Ustawiamy kat przez zmienne CSS, a nie inline transform - dzieki temu
+            // animacja "spin" po ulozeniu moze uzyc tych samych zmiennych.
+            cube.style.setProperty('--rx', this.rotX + 'deg');
+            cube.style.setProperty('--ry', this.rotY + 'deg');
         };
         apply();
 
@@ -610,36 +613,34 @@ class RubikCubeSolver {
         return true;
     }
 
-    // Show solved cube effects
+    // Show solved cube effects - zaleznie od aktywnego widoku (2D albo 3D),
+    // zeby nie odpalac animacji 2D na ukrytej siatce w trybie 3D.
     showSolvedEffects() {
-        // Add solved cube class
-        const cubeContainer = document.querySelector('.cube-net');
-        cubeContainer.classList.add('solved-cube');
-
-        // Add solved cube animation (2D)
-        this.animateSolvedCube();
-
-        // Efekt w 3D: radosny obrot + poswiata
-        this.celebrate3D();
+        if (this.viewMode === '3d') {
+            this.celebrate3D();
+        } else {
+            document.querySelector('.cube-net').classList.add('solved-cube');
+            this.animateSolvedCube();
+        }
 
         this.showStatus('Congratulations! Cube has been solved!', 'success');
     }
 
-    // Animacja ulozenia dla kostki 3D: sprezysty "pop" calej kostki + zielona
-    // poswiata. Czyste animacje CSS (same sie koncza, nie koliduja z obrotem
-    // myszka na inline-transformie kostki).
+    // Animacja ulozenia dla kostki 3D: pelny obrot kostki o 360 stopni + zielona
+    // poswiata. Obrot uzywa zmiennych --rx/--ry (patrz setup3DRotation), a poswiata
+    // jest na scenie - dzieki temu nie koliduja ze soba. Animacje CSS same sie koncza.
     celebrate3D() {
         const scene = document.querySelector('.cube-3d-scene');
         const cube = document.querySelector('.cube-3d');
         if (!cube) return;
 
-        cube.classList.add('solved-glow');
-        if (scene) scene.classList.add('solved-bounce');
+        cube.classList.add('solved-spin');
+        if (scene) scene.classList.add('solved-glow');
 
         setTimeout(() => {
-            cube.classList.remove('solved-glow');
-            if (scene) scene.classList.remove('solved-bounce');
-        }, 1300);
+            cube.classList.remove('solved-spin');
+            if (scene) scene.classList.remove('solved-glow');
+        }, 1100);
     }
 
     // Cube solving
