@@ -12,17 +12,26 @@ import org.springframework.stereotype.Service;
 
 import com.smse.rubik_solver.model.Color;
 import com.smse.rubik_solver.model.Cube;
+import com.smse.rubik_solver.model.CubeOrientation;
 
 
 @Service
 public class ValidationService {
-    
+
     public boolean isCubeValid(Cube cube) {
         cube.initArrays();
-        
-        return (areCentersValid(cube) && areCornersValid(cube) && areEdgesValid(cube)
-                && areCornerOrientationsValid(cube) && areEdgesOrientationsValid(cube)
-                && checkParity(cube));
+
+        // Zaakceptuj poprawna kostke niezaleznie od orientacji: najpierw sprowadz ja
+        // do orientacji kanonicznej (null => srodki nie tworza poprawnego schematu),
+        // a pozostale reguly sprawdz juz na znormalizowanej kostce.
+        Cube canonical = CubeOrientation.toCanonical(cube);
+        if (canonical == null) {
+            return false;
+        }
+
+        return (areCentersValid(canonical) && areCornersValid(canonical) && areEdgesValid(canonical)
+                && areCornerOrientationsValid(canonical) && areEdgesOrientationsValid(canonical)
+                && checkParity(canonical));
     }
 
     private boolean areCentersValid(Cube cube) {
@@ -31,128 +40,69 @@ public class ValidationService {
                 && cube.getY()[1][1] == Color.Y && cube.getO()[1][1] == Color.O);
     }
 
+    // Naroza w kanonicznej kolejnosci: UFL, UFR, UBR, UBL, DFL, DFR, DBR, DBL.
+    // Ta sama kolejnosc jest wymagana przez cornerParity (indeksy permutacji),
+    // dlatego odczyt wspoldzieli jedna metoda zamiast powielac wspolrzedne.
+    private List<Set<Color>> readCorners(Cube cube) {
+        return List.of(
+                new HashSet<>(Arrays.asList(cube.getR()[0][0], cube.getG()[0][2], cube.getW()[2][0])), // UFL
+                new HashSet<>(Arrays.asList(cube.getR()[0][2], cube.getB()[0][0], cube.getW()[2][2])), // UFR
+                new HashSet<>(Arrays.asList(cube.getO()[0][0], cube.getB()[0][2], cube.getW()[0][2])), // UBR
+                new HashSet<>(Arrays.asList(cube.getO()[0][2], cube.getG()[0][0], cube.getW()[0][0])), // UBL
+                new HashSet<>(Arrays.asList(cube.getR()[2][0], cube.getG()[2][2], cube.getY()[0][0])), // DFL
+                new HashSet<>(Arrays.asList(cube.getR()[2][2], cube.getB()[2][0], cube.getY()[0][2])), // DFR
+                new HashSet<>(Arrays.asList(cube.getO()[2][0], cube.getB()[2][2], cube.getY()[2][2])), // DBR
+                new HashSet<>(Arrays.asList(cube.getO()[2][2], cube.getG()[2][0], cube.getY()[2][0]))); // DBL
+    }
+
     private boolean areCornersValid(Cube cube) {
-        Set<Set<Color>> actualCorners = new HashSet<>();
+        Set<Set<Color>> validCorners = Set.of(
+                Set.of(Color.W, Color.R, Color.G), // UFL
+                Set.of(Color.W, Color.R, Color.B), // UFR
+                Set.of(Color.W, Color.O, Color.B), // UBR
+                Set.of(Color.W, Color.O, Color.G), // UBL
+                Set.of(Color.Y, Color.R, Color.G), // DFL
+                Set.of(Color.Y, Color.R, Color.B), // DFR
+                Set.of(Color.Y, Color.O, Color.B), // DBR
+                Set.of(Color.Y, Color.O, Color.G)); // DBL
 
-        actualCorners.add(new HashSet<>(Arrays.asList( // U-F-L
-                cube.getR()[0][0],    
-                cube.getG()[0][2],      
-                cube.getW()[2][0]))); 
-        actualCorners.add(new HashSet<>(Arrays.asList( // U-F-R
-                cube.getR()[0][2],    
-                cube.getB()[0][0],    
-                cube.getW()[2][2]))); 
+        return new HashSet<>(readCorners(cube)).equals(validCorners);
+    }
 
-        actualCorners.add(new HashSet<>(Arrays.asList( // U-B-L
-                cube.getO()[0][2],   
-                cube.getG()[0][0],   
-                cube.getW()[0][0]))); 
-
-        actualCorners.add(new HashSet<>(Arrays.asList( // U-B-R
-                cube.getO()[0][0],    
-                cube.getB()[0][2],   
-                cube.getW()[0][2])));
-        actualCorners.add(new HashSet<>(Arrays.asList( // D-F-L
-                cube.getR()[2][0],   
-                cube.getG()[2][2],    
-                cube.getY()[0][0]))); 
-
-        actualCorners.add(new HashSet<>(Arrays.asList( // D-F-R
-                cube.getR()[2][2],    
-                cube.getB()[2][0],    
-                cube.getY()[0][2]))); 
-
-        actualCorners.add(new HashSet<>(Arrays.asList( // D-B-L
-                cube.getO()[2][2],    
-                cube.getG()[2][0],    
-                cube.getY()[2][0]))); 
-
-        actualCorners.add(new HashSet<>(Arrays.asList( // D-B-R
-                cube.getO()[2][0],    
-                cube.getB()[2][2],    
-                cube.getY()[2][2]))); 
-
-        Set<Set<Color>> validCorners = new HashSet<>(Arrays.asList(
-                Set.of(Color.W, Color.R, Color.G), // U-F-L
-                Set.of(Color.W, Color.R, Color.B), // U-F-R
-                Set.of(Color.W, Color.O, Color.G), // U-B-L
-                Set.of(Color.W, Color.O, Color.B), // U-B-R
-                Set.of(Color.Y, Color.R, Color.G), // D-F-L
-                Set.of(Color.Y, Color.R, Color.B), // D-F-R
-                Set.of(Color.Y, Color.O, Color.G), // D-B-L
-                Set.of(Color.Y, Color.O, Color.B)  // D-B-R
-        ));
-
-        return actualCorners.equals(validCorners);
+    // Krawedzie w kanonicznej kolejnosci: UF, UR, UB, UL, DF, DR, DB, DL, FR, RB, BL, LF.
+    // Kolejnosc wymagana przez edgeParity; odczyt wspoldzieli jedna metoda.
+    private List<Set<Color>> readEdges(Cube cube) {
+        return List.of(
+                Set.of(cube.getW()[2][1], cube.getR()[0][1]), // UF
+                Set.of(cube.getW()[1][2], cube.getB()[0][1]), // UR
+                Set.of(cube.getW()[0][1], cube.getO()[0][1]), // UB
+                Set.of(cube.getW()[1][0], cube.getG()[0][1]), // UL
+                Set.of(cube.getY()[0][1], cube.getR()[2][1]), // DF
+                Set.of(cube.getY()[1][2], cube.getB()[2][1]), // DR
+                Set.of(cube.getY()[2][1], cube.getO()[2][1]), // DB
+                Set.of(cube.getY()[1][0], cube.getG()[2][1]), // DL
+                Set.of(cube.getR()[1][2], cube.getB()[1][0]), // FR
+                Set.of(cube.getB()[1][2], cube.getO()[1][0]), // RB
+                Set.of(cube.getO()[1][2], cube.getG()[1][0]), // BL
+                Set.of(cube.getG()[1][2], cube.getR()[1][0])); // LF
     }
 
     private boolean areEdgesValid(Cube cube) {
-        Set<Set<Color>> actualEdges = new HashSet<>();
-
-        actualEdges.add(Set.of( // U-F
-                cube.getR()[0][1],    
-                cube.getW()[2][1]));  
-
-        actualEdges.add(Set.of( // U-L
-                cube.getG()[0][1],    
-                cube.getW()[1][0]));  
-
-        actualEdges.add(Set.of( // U-R
-                cube.getB()[0][1],   
-                cube.getW()[1][2]));  
-
-        actualEdges.add(Set.of( // U-B
-                cube.getO()[0][1],    
-                cube.getW()[0][1]));  
-
-        actualEdges.add(Set.of( // D-F
-                cube.getR()[2][1],    
-                cube.getY()[0][1]));  
-
-        actualEdges.add(Set.of( // D-L
-                cube.getG()[2][1],   
-                cube.getY()[1][0]));  
-
-        actualEdges.add(Set.of( // D-R
-                cube.getB()[2][1],    
-                cube.getY()[1][2]));  
-
-        actualEdges.add(Set.of( // D-B
-                cube.getO()[2][1],    
-                cube.getY()[2][1]));  
-
-        actualEdges.add(Set.of( // F-L
-                cube.getR()[1][0],   
-                cube.getG()[1][2]));  
-
-        actualEdges.add(Set.of( // F-R
-                cube.getR()[1][2],    
-                cube.getB()[1][0]));  
-
-        actualEdges.add(Set.of( // B-L
-                cube.getO()[1][2],    
-                cube.getG()[1][0]));  
-
-        actualEdges.add(Set.of( // B-R
-                cube.getO()[1][0],    
-                cube.getB()[1][2]));  
-
         Set<Set<Color>> validEdges = Set.of(
-                Set.of(Color.W, Color.R), // U-F
-                Set.of(Color.W, Color.G), // U-L
-                Set.of(Color.W, Color.B), // U-R
-                Set.of(Color.W, Color.O), // U-B
-                Set.of(Color.Y, Color.R), // D-F
-                Set.of(Color.Y, Color.G), // D-L
-                Set.of(Color.Y, Color.B), // D-R
-                Set.of(Color.Y, Color.O), // D-B
-                Set.of(Color.R, Color.G), // F-L
-                Set.of(Color.R, Color.B), // F-R
-                Set.of(Color.O, Color.G), // B-L
-                Set.of(Color.O, Color.B)  // B-R
-        );
+                Set.of(Color.W, Color.R), // UF
+                Set.of(Color.W, Color.B), // UR
+                Set.of(Color.W, Color.O), // UB
+                Set.of(Color.W, Color.G), // UL
+                Set.of(Color.Y, Color.R), // DF
+                Set.of(Color.Y, Color.B), // DR
+                Set.of(Color.Y, Color.O), // DB
+                Set.of(Color.Y, Color.G), // DL
+                Set.of(Color.R, Color.B), // FR
+                Set.of(Color.B, Color.O), // RB
+                Set.of(Color.O, Color.G), // BL
+                Set.of(Color.G, Color.R)); // LF
 
-        return actualEdges.equals(validEdges);
+        return new HashSet<>(readEdges(cube)).equals(validEdges);
     }
 
     private boolean areCornerOrientationsValid(Cube cube) {
@@ -191,91 +141,35 @@ public class ValidationService {
     }
 
     private boolean areEdgesOrientationsValid(Cube cube) {
+        // Kazdy wiersz: { naklejka glowna, naklejka sasiednia }. Regula orientacji
+        // (ta sama dla wszystkich 12 krawedzi) liczona jest raz, w petli.
+        Color[][] edges = {
+                { cube.getW()[2][1], cube.getR()[0][1] }, // UF
+                { cube.getW()[1][2], cube.getB()[0][1] }, // UR
+                { cube.getW()[0][1], cube.getO()[0][1] }, // UB
+                { cube.getW()[1][0], cube.getG()[0][1] }, // UL
+                { cube.getY()[0][1], cube.getR()[2][1] }, // DF
+                { cube.getY()[1][2], cube.getB()[2][1] }, // DR
+                { cube.getY()[2][1], cube.getO()[2][1] }, // DB
+                { cube.getY()[1][0], cube.getG()[2][1] }, // DL
+                { cube.getR()[1][2], cube.getB()[1][0] }, // FR
+                { cube.getR()[1][0], cube.getG()[1][2] }, // FL
+                { cube.getO()[1][0], cube.getB()[1][2] }, // BR
+                { cube.getO()[1][2], cube.getG()[1][0] }, // BL
+        };
+
         int sum = 0;
+        for (Color[] edge : edges) {
+            Color primary = edge[0];
+            Color neighbour = edge[1];
 
+            boolean badlyOriented = primary == Color.G || primary == Color.B
+                    || ((primary == Color.R || primary == Color.O)
+                            && (neighbour == Color.W || neighbour == Color.Y));
 
-        // UF
-        if (cube.getW()[2][1] == Color.G || cube.getW()[2][1] == Color.B
-                || ((cube.getW()[2][1] == Color.R || cube.getW()[2][1] == Color.O)
-                && (cube.getR()[0][1] == Color.W || cube.getR()[0][1] == Color.Y))) {
-            sum += 1;
-        }
-
-        // UR
-        if (cube.getW()[1][2] == Color.G || cube.getW()[1][2] == Color.B
-                || ((cube.getW()[1][2] == Color.R || cube.getW()[1][2] == Color.O)
-                && (cube.getB()[0][1] == Color.W || cube.getB()[0][1] == Color.Y))) {
-            sum += 1;
-        }
-
-        // UB
-        if (cube.getW()[0][1] == Color.G || cube.getW()[0][1] == Color.B
-                || ((cube.getW()[0][1] == Color.R || cube.getW()[0][1] == Color.O)
-                && (cube.getO()[0][1] == Color.W || cube.getO()[0][1] == Color.Y))) {
-            sum += 1;
-        }
-
-        // UL
-        if (cube.getW()[1][0] == Color.G || cube.getW()[1][0] == Color.B
-                || ((cube.getW()[1][0] == Color.R || cube.getW()[1][0] == Color.O)
-                && (cube.getG()[0][1] == Color.W || cube.getG()[0][1] == Color.Y))) {
-            sum += 1;
-        }
-
-        // DF
-        if (cube.getY()[0][1] == Color.G || cube.getY()[0][1] == Color.B
-                || ((cube.getY()[0][1] == Color.R || cube.getY()[0][1] == Color.O)
-                && (cube.getR()[2][1] == Color.W || cube.getR()[2][1] == Color.Y))) {
-            sum += 1;
-        }
-
-        // DR
-        if (cube.getY()[1][2] == Color.G || cube.getY()[1][2] == Color.B
-                || ((cube.getY()[1][2] == Color.R || cube.getY()[1][2] == Color.O)
-                && (cube.getB()[2][1] == Color.W || cube.getB()[2][1] == Color.Y))) {
-            sum += 1;
-        }
-
-        // DB
-        if (cube.getY()[2][1] == Color.G || cube.getY()[2][1] == Color.B
-                || ((cube.getY()[2][1] == Color.R || cube.getY()[2][1] == Color.O)
-                && (cube.getO()[2][1] == Color.W || cube.getO()[2][1] == Color.Y))) {
-            sum += 1;
-        }
-
-        // DL
-        if (cube.getY()[1][0] == Color.G || cube.getY()[1][0] == Color.B
-                || ((cube.getY()[1][0] == Color.R || cube.getY()[1][0] == Color.O)
-                && (cube.getG()[2][1] == Color.W || cube.getG()[2][1] == Color.Y))) {
-            sum += 1;
-        }
-
-        // FR
-        if (cube.getR()[1][2] == Color.G || cube.getR()[1][2] == Color.B
-                || ((cube.getR()[1][2] == Color.R || cube.getR()[1][2] == Color.O)
-                && (cube.getB()[1][0] == Color.W || cube.getB()[1][0] == Color.Y))) {
-            sum += 1;
-        }
-
-        // FL
-        if (cube.getR()[1][0] == Color.G || cube.getR()[1][0] == Color.B
-                || ((cube.getR()[1][0] == Color.R || cube.getR()[1][0] == Color.O)
-                && (cube.getG()[1][2] == Color.W || cube.getG()[1][2] == Color.Y))) {
-            sum += 1;
-        }
-
-        // BR
-        if (cube.getO()[1][0] == Color.G || cube.getO()[1][0] == Color.B
-                || ((cube.getO()[1][0] == Color.R || cube.getO()[1][0] == Color.O)
-                && (cube.getB()[1][2] == Color.W || cube.getB()[1][2] == Color.Y))) {
-            sum += 1;
-        }
-
-        // BL
-        if (cube.getO()[1][2] == Color.G || cube.getO()[1][2] == Color.B
-                || ((cube.getO()[1][2] == Color.R || cube.getO()[1][2] == Color.O)
-                && (cube.getG()[1][0] == Color.W || cube.getG()[1][0] == Color.Y))) {
-            sum += 1;
+            if (badlyOriented) {
+                sum++;
+            }
         }
 
         return sum % 2 == 0;
@@ -292,23 +186,7 @@ public class ValidationService {
         validCorners.put(Set.of(Color.Y, Color.O, Color.B), 6); // DBR
         validCorners.put(Set.of(Color.Y, Color.O, Color.G), 7); // DBL
 
-        List<Set<Color>> actualCorners = new ArrayList<>();
-        actualCorners.add(Set.of( // U-F-L
-                cube.getR()[0][0], cube.getG()[0][2], cube.getW()[2][0]));
-        actualCorners.add(Set.of( // U-F-R
-                cube.getR()[0][2], cube.getB()[0][0], cube.getW()[2][2]));
-        actualCorners.add(Set.of( // U-B-R
-                cube.getO()[0][0], cube.getB()[0][2], cube.getW()[0][2]));
-        actualCorners.add(Set.of( // U-B-L
-                cube.getO()[0][2], cube.getG()[0][0], cube.getW()[0][0]));
-        actualCorners.add(Set.of( // D-F-L
-                cube.getR()[2][0], cube.getG()[2][2], cube.getY()[0][0]));
-        actualCorners.add(Set.of( // D-F-R
-                cube.getR()[2][2], cube.getB()[2][0], cube.getY()[0][2]));
-        actualCorners.add(Set.of( // D-B-R
-                cube.getO()[2][0], cube.getB()[2][2], cube.getY()[2][2]));
-        actualCorners.add(Set.of( // D-B-L
-                cube.getO()[2][2], cube.getG()[2][0], cube.getY()[2][0]));
+        List<Set<Color>> actualCorners = readCorners(cube);
 
         List<Integer> perm = new ArrayList<>(8);
         for (Set<Color> corner : actualCorners) {
@@ -321,7 +199,7 @@ public class ValidationService {
         int cycles = cycleCount(perm);
         if (cycles < 0)
             return -1;
-        return (8 - cycles) & 1; 
+        return (8 - cycles) & 1;
     }
 
     private int edgeParity(Cube cube) {
@@ -340,19 +218,7 @@ public class ValidationService {
         validEdges.put(Set.of(Color.O, Color.G), 10); // B–L
         validEdges.put(Set.of(Color.G, Color.R), 11); // L–F
 
-        List<Set<Color>> actualEdges = new ArrayList<>();
-        actualEdges.add(Set.of(cube.getW()[2][1], cube.getR()[0][1])); // U–F
-        actualEdges.add(Set.of(cube.getW()[1][2], cube.getB()[0][1])); // U–R
-        actualEdges.add(Set.of(cube.getW()[0][1], cube.getO()[0][1])); // U–B
-        actualEdges.add(Set.of(cube.getW()[1][0], cube.getG()[0][1])); // U–L
-        actualEdges.add(Set.of(cube.getY()[0][1], cube.getR()[2][1])); // D–F
-        actualEdges.add(Set.of(cube.getY()[1][2], cube.getB()[2][1])); // D–R
-        actualEdges.add(Set.of(cube.getY()[2][1], cube.getO()[2][1])); // D–B
-        actualEdges.add(Set.of(cube.getY()[1][0], cube.getG()[2][1])); // D–L
-        actualEdges.add(Set.of(cube.getR()[1][2], cube.getB()[1][0])); // F–R
-        actualEdges.add(Set.of(cube.getB()[1][2], cube.getO()[1][0])); // R–B
-        actualEdges.add(Set.of(cube.getO()[1][2], cube.getG()[1][0])); // B–L
-        actualEdges.add(Set.of(cube.getG()[1][2], cube.getR()[1][0])); // L–F
+        List<Set<Color>> actualEdges = readEdges(cube);
 
         List<Integer> perm = new ArrayList<>(12);
         for (Set<Color> edge : actualEdges) {

@@ -12,6 +12,7 @@ import com.smse.rubik_solver.service.CubeService;
 import com.smse.rubik_solver.service.SessionManager;
 import com.smse.rubik_solver.service.ValidationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
@@ -20,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 @RestController
 @RequestMapping("/cube")
 @RequiredArgsConstructor
+@Slf4j
 public class CubeController {
 
     private final CubeService cubeService;
@@ -145,22 +147,18 @@ public class CubeController {
             Cube cube = cubeService.initializeCube(request.getCube());
 
             if (!validationService.isCubeValid(cube)) {
-                System.out.println("Invalid cube");
+                log.warn("Invalid cube received in /solve");
                 return ResponseEntity.badRequest().build();
             }
 
             List<String> solutionMoves = cubeService.solve(cube);
-            /*
-             * if (solutionMoves == null || solutionMoves.isEmpty()) {
-             * return ResponseEntity.unprocessableEntity().build();
-             * }
-             */
+
             sessionId = getOrCreateSessionId(sessionId);
             UserSession session = sessionManager.getSession(sessionId);
             session.setCube(cube);
 
             InitSolveResponse response = InitSolveResponse.builder()
-                    .sessionID(sessionId)
+                    .sessionId(sessionId)
                     .moves(solutionMoves)
                     .build();
 

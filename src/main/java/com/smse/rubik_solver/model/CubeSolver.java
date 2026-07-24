@@ -4,139 +4,406 @@ import java.util.*;
 
 public class CubeSolver {
 
+    // Maksymalna glebokosc (w ruchach polobrotowych) dla skrotu DFS na starcie.
+    // Kostki dajace sie ulozyc w tylu ruchach omijaja metode LBL, ktora robilaby
+    // ich znacznie wiecej. Kazdy ruch to U/D/R/L/F/B jako obrot, obrot odwrotny
+    // lub podwojny (liczony jako jeden krok).
+    private static final int SHORTCUT_MAX_DEPTH = 4;
+
+    private static final char[] SHORTCUT_FACES = { 'U', 'D', 'R', 'L', 'F', 'B' };
+
     public List<String> solveCube(Cube cube) {
         cube.initArrays();
+
+        // Skrot: sprobuj ulozyc cala kostke w kilku ruchach, zanim ruszy LBL.
+        List<String> shortcut = solveWithShortcut(cube);
+        if (shortcut != null) {
+            cube.makeMovesFromList(shortcut);
+            cube.syncToLists();
+            return collapseDoubles(optimizeMoves(shortcut));
+        }
 
         List<String> allMoves = new ArrayList<>();
 
         allMoves.addAll(solveFirstLayer(cube));
-        cube.syncToLists();
-
         allMoves.addAll(solveMiddleLayer(cube));
-        cube.syncToLists();
-
         allMoves.addAll(solveLastLayer(cube));
         cube.syncToLists();
 
-        return optimizeMoves(allMoves);
+        return collapseDoubles(optimizeMoves(allMoves));
+    }
+
+    // Ostatni krok: dwa identyczne kolejne obroty tej samej sciany (np. "U" "U"
+    // albo "U'" "U'") to obrot o 180 stopni - laczymy je w jeden token "U2".
+    // Optymalizator pozostaje nietkniety (dziala na pojedynczych ruchach), a wynik
+    // jest zgodny z makeMovesFromList i frontendem.
+    private List<String> collapseDoubles(List<String> moves) {
+        List<String> result = new ArrayList<>();
+
+        int i = 0;
+        while (i < moves.size()) {
+            String move = moves.get(i);
+            boolean singleTurn = move.length() == 1 || move.endsWith("'");
+
+            if (singleTurn && i + 1 < moves.size() && move.equals(moves.get(i + 1))) {
+                result.add(move.charAt(0) + "2");
+                i += 2;
+            } else {
+                result.add(move);
+                i++;
+            }
+        }
+
+        return result;
+    }
+
+    // Iteracyjne poglebianie: zwraca najkrotsza sekwencje pojedynczych ruchow
+    // ukladajaca cala kostke, albo null jesli nie znaleziono w limicie glebokosci.
+    private List<String> solveWithShortcut(Cube cube) {
+        if (cube.isCubeCompleted()) {
+            return new ArrayList<>();
+        }
+
+        for (int limit = 1; limit <= SHORTCUT_MAX_DEPTH; limit++) {
+            List<String> path = new ArrayList<>();
+            if (shortcutDfs(cube, path, limit, ' ')) {
+                return path;
+            }
+        }
+        return null;
+    }
+
+    // Przeszukiwanie make/undo na jednej kostce (bez kopiowania i bez syncToLists),
+    // wolajac bezposrednio metody obrotu operujace na tablicach - to kluczowe dla
+    // wydajnosci, bo wezlow sa setki tysiecy. Po znalezieniu rozwiazania ruchy sa
+    // cofane w trakcie zwijania rekurencji, wiec kostka wraca do stanu wejsciowego,
+    // a `path` zachowuje pelna sekwencje.
+    private boolean shortcutDfs(Cube cube, List<String> path, int remaining, char lastFace) {
+        if (cube.isCubeCompleted()) {
+            return true;
+        }
+        if (remaining == 0) {
+            return false;
+        }
+
+        for (char face : SHORTCUT_FACES) {
+            // Dwa kolejne ruchy tej samej sciany zawsze da sie polaczyc w jeden,
+            // wiec ich nie rozwazamy osobno.
+            if (face == lastFace) {
+                continue;
+            }
+
+            for (int kind = 0; kind < 3; kind++) {
+                List<String> tokens = shortcutTokens(face, kind);
+
+                applyShortcutMove(cube, face, kind);
+                path.addAll(tokens);
+
+                boolean found = shortcutDfs(cube, path, remaining - 1, face);
+
+                applyShortcutMove(cube, face, inverseKind(kind));
+                if (found) {
+                    return true;
+                }
+                for (int k = 0; k < tokens.size(); k++) {
+                    path.remove(path.size() - 1);
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // kind: 0 = obrot, 1 = obrot odwrotny, 2 = podwojny (jako dwa pojedyncze ruchy,
+    // dzieki czemu wynik pozostaje zgodny z makeMovesFromList i frontendem).
+    private List<String> shortcutTokens(char face, int kind) {
+        String f = String.valueOf(face);
+        switch (kind) {
+            case 0:
+                return Collections.singletonList(f);
+            case 1:
+                return Collections.singletonList(f + "'");
+            default:
+                return Arrays.asList(f, f);
+        }
+    }
+
+    private int inverseKind(int kind) {
+        if (kind == 0)
+            return 1; // obrot <-> obrot odwrotny
+        if (kind == 1)
+            return 0;
+        return 2; // podwojny jest wlasna odwrotnoscia
+    }
+
+    private void applyShortcutMove(Cube cube, char face, int kind) {
+        switch (kind) {
+            case 0:
+                turn(cube, face, false);
+                break;
+            case 1:
+                turn(cube, face, true);
+                break;
+            default:
+                turn(cube, face, false);
+                turn(cube, face, false);
+                break;
+        }
+    }
+
+    private void turn(Cube cube, char face, boolean prime) {
+        switch (face) {
+            case 'U':
+                if (prime)
+                    cube.moveUprim();
+                else
+                    cube.moveU();
+                break;
+            case 'D':
+                if (prime)
+                    cube.moveDprim();
+                else
+                    cube.moveD();
+                break;
+            case 'R':
+                if (prime)
+                    cube.moveRprim();
+                else
+                    cube.moveR();
+                break;
+            case 'L':
+                if (prime)
+                    cube.moveLprim();
+                else
+                    cube.moveL();
+                break;
+            case 'F':
+                if (prime)
+                    cube.moveFprim();
+                else
+                    cube.moveF();
+                break;
+            case 'B':
+                if (prime)
+                    cube.moveBprim();
+                else
+                    cube.moveB();
+                break;
+        }
     }
 
     public List<String> solveLastLayer(Cube cube) {
-        cube.initArrays();
-
         List<String> allMoves = new ArrayList<>();
 
         allMoves.addAll(solveCrossOnLastLayer(cube));
-        cube.syncToLists();
-        //System.out.println("solveCrossOnLastLayer");
-
         allMoves.addAll(solveLastLayerPart2(cube));
-        cube.syncToLists();
-        //System.out.println("solveLastLayerPart2");
-
         allMoves.addAll(solveLastLayerPart3(cube));
-        cube.syncToLists();
-        //System.out.println("solveLastLayerPart3");
-
         allMoves.addAll(rotateEdges(cube));
-        cube.syncToLists();
-        //System.out.println("rotateEdges");
 
-        return optimizeMoves(allMoves);
+        return allMoves;
 
     }
 
     public List<String> solveMiddleLayer(Cube cube) {
-        cube.initArrays();
-
         List<String> allMoves = new ArrayList<>();
 
         allMoves.addAll(prepareForSolvingMiddleLayer(cube));
-        cube.syncToLists();
-        //ystem.out.println("prepareForSolvingMiddleLayer");
-
         allMoves.addAll(solveMiddleLayer1(cube));
-        cube.syncToLists();
-        //System.out.println("solveMiddleLayer1");
-
-        return optimizeMoves(allMoves);
+        return allMoves;
 
     }
 
     public List<String> solveFirstLayer(Cube cube) {
-        cube.initArrays();
-
         List<String> allMoves = new ArrayList<>();
 
         allMoves.addAll(prepareForSolvingWhiteCross(cube));
-        cube.syncToLists();
-        //System.out.println("prepareForSolvingWhiteCross");
-
         allMoves.addAll(solveWhiteCross(cube));
-        cube.syncToLists();
-        //System.out.println("solveWhiteCross");
-
         allMoves.addAll(prepareForSolvingCornersFirstLayer(cube));
-        cube.syncToLists();
-        //System.out.println("prepareForSolvingCornersFirstLayer");
-
         allMoves.addAll(solveCornersFirstLayer(cube));
-        cube.syncToLists();
-        //System.out.println("solveCornersFirstLayer");
-
-        return optimizeMoves(allMoves);
+        return allMoves;
 
     }
 
-    private List<String> optimizeMoves(List<String> moves) {
+    private static final Map<Character, Integer> AXIS = Map.of(
+            'U', 0, 'D', 0,
+            'R', 1, 'L', 1,
+            'F', 2, 'B', 2);
+
+    public List<String> optimizeMoves(List<String> moves) {
         Stack<String> stack = new Stack<>();
 
         for (String move : moves) {
-            if (!stack.isEmpty()) {
-                String top = stack.peek();
-                if (isInverse(top, move)) {
-                    stack.pop(); // Cancel inverse moves
-                } else if (top.equals(move)) {
-                    stack.pop();
-                    if (!stack.isEmpty() && stack.peek().equals(move)) {
-                        // Three same moves -> cancel all three and add inverse
-                        stack.pop();
-                        stack.push(getInverse(move));
-                    } else {
-                        // Two same moves -> store them temporarily
-                        stack.push(move);
-                        stack.push(move);
-                    }
-                } else {
-                    stack.push(move);
-                }
-            } else {
-                stack.push(move);
-            }
+            stack.push(move);
+
+            int axis = AXIS.getOrDefault(baseFace(move), -1);
+            normalizeAxisTail(stack, axis);
+
+            optimizeSequences(stack);
         }
+        normalizeAxisTail(stack, 0); // UD
+        normalizeAxisTail(stack, 1); // RL
+        normalizeAxisTail(stack, 2); // FB
 
         return new ArrayList<>(stack);
     }
 
-    private boolean isInverse(String move1, String move2) {
-        return move1.equals(getInverse(move2));
-    }
+    private void normalizeAxisTail(Stack<String> stack, int axis) {
+        if (axis < 0 || stack.isEmpty())
+            return;
 
-    private String getInverse(String move) {
-        if (move.endsWith("'")) {
-            return move.substring(0, move.length() - 1);
-        } else {
-            return move + "'";
+        int end = stack.size() - 1;
+        int start = end;
+
+        while (start >= 0) {
+            String mv = stack.get(start);
+            Integer ax = AXIS.get(baseFace(mv));
+            if (ax == null || ax != axis)
+                break;
+            start--;
+        }
+        start++;
+        if (start > end)
+            return;
+
+        int a = 0, b = 0;
+
+        for (int i = start; i <= end; i++) {
+            String mv = stack.get(i);
+            char f = baseFace(mv);
+            int d = isPrime(mv) ? -1 : 1;
+            switch (axis) {
+                case 0:
+                    if (f == 'U')
+                        a += d;
+                    else if (f == 'D')
+                        b += d;
+                    break;
+                case 1:
+                    if (f == 'R')
+                        a += d;
+                    else if (f == 'L')
+                        b += d;
+                    break;
+                case 2:
+                    if (f == 'F')
+                        a += d;
+                    else if (f == 'B')
+                        b += d;
+                    break;
+            }
+        }
+        for (int i = end; i >= start; i--)
+            stack.pop();
+
+        switch (axis) {
+            case 0:
+                pushReduced(stack, 'U', a);
+                pushReduced(stack, 'D', b);
+                break;
+            case 1:
+                pushReduced(stack, 'R', a);
+                pushReduced(stack, 'L', b);
+                break;
+            case 2:
+                pushReduced(stack, 'F', a);
+                pushReduced(stack, 'B', b);
+                break;
         }
     }
 
+    private void pushReduced(Stack<String> stack, char face, int exp) {
+        int k = ((exp % 4) + 4) % 4;
+        if (k == 0)
+            return;
+        if (k == 1)
+            stack.push(String.valueOf(face));
+        else if (k == 2) {
+            stack.push(String.valueOf(face));
+            stack.push(String.valueOf(face));
+        } else if (k == 3)
+            stack.push(face + "'");
+    }
+
+    private void optimizeSequences(Stack<String> stack) {
+        if (stack.size() < 4)
+            return;
+
+        String[] firstMoves = { "F", "L", "R", "B" };
+        String secondMove = "D";
+
+        for (String firstMove : firstMoves) {
+            int repeatCount = countSequenceRepetitions(stack, firstMove, secondMove);
+
+            if (repeatCount > 3) {
+                optimizeSequenceRepetition(stack, firstMove, secondMove, repeatCount);
+                return;
+            }
+        }
+    }
+
+    private int countSequenceRepetitions(Stack<String> stack, String first, String second) {
+        int count = 0;
+        int stackSize = stack.size();
+
+        while (stackSize >= (count + 1) * 4) {
+            int baseIndex = stackSize - 1 - count * 4;
+            String m4 = stack.get(baseIndex);
+            String m3 = stack.get(baseIndex - 1);
+            String m2 = stack.get(baseIndex - 2);
+            String m1 = stack.get(baseIndex - 3);
+
+            if (isSequence(m1, m2, m3, m4, first, second)) {
+                count++;
+            } else
+                break;
+        }
+        return count;
+    }
+
+    private void optimizeSequenceRepetition(Stack<String> stack, String first, String second, int repeatCount) {
+        int optimizedCount = 6 - repeatCount;
+
+        for (int i = 0; i < repeatCount * 4; i++)
+            stack.pop();
+
+        if (optimizedCount > 0) {
+            for (int i = 0; i < optimizedCount; i++) {
+                String[] toPush = { second, first, getInverse(second), getInverse(first) };
+                for (String mv : toPush) {
+                    stack.push(mv);
+                    int ax = AXIS.getOrDefault(baseFace(mv), -1);
+                    normalizeAxisTail(stack, ax);
+                }
+            }
+        }
+    }
+
+    private boolean isSequence(String m1, String m2, String m3, String m4, String first, String second) {
+        return (m1.equals(first) && m2.equals(second) &&
+                m3.equals(getInverse(first)) && m4.equals(getInverse(second)));
+    }
+
+    private String getInverse(String move) {
+        if (move.endsWith("'"))
+            return move.substring(0, move.length() - 1);
+        return move + "'";
+    }
+
+    private char baseFace(String move) {
+        return move.charAt(0);
+    }
+
+    private boolean isPrime(String move) {
+        return move.endsWith("'");
+    }
+
     private List<String> solveCrossOnLastLayer(Cube cube) {
-        Color center = cube.getDown().get(1).get(1);
+        Color center = cube.getY()[1][1];
         String state = ""
-                + (cube.getDown().get(0).get(1) == center ? "U" : "")
-                + (cube.getDown().get(1).get(0) == center ? "L" : "")
-                + (cube.getDown().get(1).get(2) == center ? "R" : "")
-                + (cube.getDown().get(2).get(1) == center ? "D" : "");
+                + (cube.getY()[0][1] == center ? "U" : "")
+                + (cube.getY()[1][0] == center ? "L" : "")
+                + (cube.getY()[1][2] == center ? "R" : "")
+                + (cube.getY()[2][1] == center ? "D" : "");
 
         List<String> moves;
 
@@ -178,7 +445,6 @@ public class CubeSolver {
         int rotations = 0;
         while (count < 2 && rotations < 4) {
             cube.moveD();
-            cube.syncToLists();
             moves.add("D");
             rotations++;
             count = howManyEdgesInPlaceForPart2(cube);
@@ -191,14 +457,14 @@ public class CubeSolver {
         if (count == 4)
             return moves;
 
-        Color frontSticker = cube.getFront().get(2).get(1);
-        Color frontCenter = cube.getFront().get(1).get(1);
-        Color rightSticker = cube.getRight().get(2).get(1);
-        Color rightCenter = cube.getRight().get(1).get(1);
-        Color leftSticker = cube.getLeft().get(2).get(1);
-        Color leftCenter = cube.getLeft().get(1).get(1);
-        Color backSticker = cube.getBack().get(2).get(1);
-        Color backCenter = cube.getBack().get(1).get(1);
+        Color frontSticker = cube.getR()[2][1];
+        Color frontCenter = cube.getR()[1][1];
+        Color rightSticker = cube.getB()[2][1];
+        Color rightCenter = cube.getB()[1][1];
+        Color leftSticker = cube.getG()[2][1];
+        Color leftCenter = cube.getG()[1][1];
+        Color backSticker = cube.getO()[2][1];
+        Color backCenter = cube.getO()[1][1];
 
         String state = ""
                 + (frontSticker == frontCenter ? "F" : "")
@@ -233,7 +499,6 @@ public class CubeSolver {
         }
 
         cube.makeMovesFromList(additionalMoves);
-        cube.syncToLists();
         moves.addAll(additionalMoves);
         return moves;
     }
@@ -250,7 +515,6 @@ public class CubeSolver {
         while (count == 0 && tries < 4) {
             additionalMoves = Arrays.asList("D", "L", "D'", "R'", "D", "L'", "D'", "R");
             cube.makeMovesFromList(additionalMoves);
-            cube.syncToLists();
             moves.addAll(additionalMoves);
             count = whichCornersAreInPlace(cube).size();
             tries++;
@@ -279,7 +543,6 @@ public class CubeSolver {
             }
 
             cube.makeMovesFromList(additionalMoves);
-            cube.syncToLists();
             moves.addAll(additionalMoves);
             count = whichCornersAreInPlace(cube).size();
         }
@@ -292,15 +555,13 @@ public class CubeSolver {
 
         if (whichCornersAreInPlace(cube).size() == 4) {
             for (int i = 0; i < 4; i++) {
-                Color color = cube.getDown().get(0).get(2);
+                Color color = cube.getY()[0][2];
                 while (!color.equals(Color.Y)) {
                     cube.sexyMove();
-                    cube.syncToLists();
                     moves.addAll(Arrays.asList("R", "U", "R'", "U'"));
-                    color = cube.getDown().get(0).get(2);
+                    color = cube.getY()[0][2];
                 }
                 cube.moveD();
-                cube.syncToLists();
                 moves.add("D");
             }
         }
@@ -325,14 +586,14 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "R'", "D", "R", "D", "F", "D'", "F'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
                 if (r.equals(gr)) {
                     List<String> additional = Arrays.asList("D", "L", "D'", "L'", "D'", "F'", "D", "F");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
+                    // cube.syncToLists();
                     moved = true;
                 }
             }
@@ -343,14 +604,12 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "B'", "D", "B", "D", "R", "D'", "R'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
                 if (b.equals(br)) {
                     List<String> additional = Arrays.asList("D", "F", "D'", "F'", "D'", "R'", "D", "R");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
             }
@@ -361,14 +620,12 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "F'", "D", "F", "D", "L", "D'", "L'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
                 if (g.equals(go)) {
                     List<String> additional = Arrays.asList("D", "B", "D'", "B'", "D'", "L'", "D", "L");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
             }
@@ -379,14 +636,12 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "L'", "D", "L", "D", "B", "D'", "B'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
                 if (o.equals(bo)) {
                     List<String> additional = Arrays.asList("D", "R", "D'", "R'", "D'", "B'", "D", "B");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
             }
@@ -394,7 +649,6 @@ public class CubeSolver {
             if (!moved) {
                 moves.add("D");
                 cube.moveD();
-                cube.syncToLists();
             }
         }
 
@@ -412,13 +666,11 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "R'", "D", "R", "D", "F", "D'", "F'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 } else if (isEdgeOnCorrectPlaceForPreparingForMiddleLayer(cube, Color.B)) {
                     List<String> additional = Arrays.asList("D", "F", "D'", "F'", "D'", "R'", "D", "R");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
             }
@@ -428,13 +680,11 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "B'", "D", "B", "D", "R", "D'", "R'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 } else if (isEdgeOnCorrectPlaceForPreparingForMiddleLayer(cube, Color.O)) {
                     List<String> additional = Arrays.asList("D", "R", "D'", "R'", "D'", "B'", "D", "B");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
             }
@@ -444,13 +694,11 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D'", "L'", "D", "L", "D", "B", "D'", "B'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 } else if (isEdgeOnCorrectPlaceForPreparingForMiddleLayer(cube, Color.G)) {
                     List<String> additional = Arrays.asList("D", "B", "D'", "B'", "D'", "L'", "D", "L");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
             }
@@ -460,20 +708,17 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("D", "L", "D'", "L'", "D'", "F'", "D", "F");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 } else if (isEdgeOnCorrectPlaceForPreparingForMiddleLayer(cube, Color.G)) {
                     List<String> additional = Arrays.asList("D'", "F'", "D", "F", "D", "L", "D'", "L'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
             }
             if (!moved) {
                 moves.add("D");
                 cube.moveD();
-                cube.syncToLists();
             }
         }
         return moves;
@@ -600,13 +845,13 @@ public class CubeSolver {
 
     private int howManyEdgesInPlaceForPart2(Cube cube) {
         int count = 0;
-        if (cube.getFront().get(2).get(1) == cube.getFront().get(1).get(1))
+        if (cube.getR()[2][1] == cube.getR()[1][1])
             count++;
-        if (cube.getRight().get(2).get(1) == cube.getRight().get(1).get(1))
+        if (cube.getB()[2][1] == cube.getB()[1][1])
             count++;
-        if (cube.getLeft().get(2).get(1) == cube.getLeft().get(1).get(1))
+        if (cube.getG()[2][1] == cube.getG()[1][1])
             count++;
-        if (cube.getBack().get(2).get(1) == cube.getBack().get(1).get(1))
+        if (cube.getO()[2][1] == cube.getO()[1][1])
             count++;
         return count;
     }
@@ -684,7 +929,6 @@ public class CubeSolver {
                 List<String> additional = Arrays.asList("R'", "D'", "R");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
                 moved = true;
             }
             if ((!(actualWRG.equals(WRG) || actualWRG.contains(Color.Y)))
@@ -692,7 +936,6 @@ public class CubeSolver {
                 List<String> additional = Arrays.asList("F'", "D'", "F");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
                 moved = true;
             }
             if ((!(actualWBO.equals(WBO) || actualWBO.contains(Color.Y)))
@@ -700,7 +943,6 @@ public class CubeSolver {
                 List<String> additional = Arrays.asList("B'", "D'", "B");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
                 moved = true;
             }
             if ((!(actualWGO.equals(WGO) || actualWGO.contains(Color.Y)))
@@ -708,13 +950,11 @@ public class CubeSolver {
                 List<String> additional = Arrays.asList("L'", "D'", "L");
                 moves.addAll(additional);
                 cube.makeMovesFromList(additional);
-                cube.syncToLists();
                 moved = true;
             }
             if (!moved) {
                 moves.add("D");
                 cube.moveD();
-                cube.syncToLists();
             }
         }
         return moves;
@@ -746,7 +986,6 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("F", "D", "F'", "D'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
             }
@@ -765,7 +1004,6 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("L", "D", "L'", "D'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
 
@@ -785,7 +1023,6 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("R", "D", "R'", "D'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
 
@@ -805,7 +1042,6 @@ public class CubeSolver {
                     List<String> additional = Arrays.asList("B", "D", "B'", "D'");
                     moves.addAll(additional);
                     cube.makeMovesFromList(additional);
-                    cube.syncToLists();
                     moved = true;
                 }
 
@@ -822,7 +1058,6 @@ public class CubeSolver {
             if (!moved) {
                 moves.add("D");
                 cube.moveD();
-                cube.syncToLists();
             }
         }
         return moves;
@@ -832,7 +1067,6 @@ public class CubeSolver {
     public List<String> prepareForSolvingWhiteCross(Cube cube) {
         List<String> moves = dfs(cube, new ArrayList<>(), 0, 8);
         cube.makeMovesFromList(moves);
-        cube.syncToLists();
         return (moves);
     }
 
@@ -868,39 +1102,45 @@ public class CubeSolver {
                 moves.add("D");
                 cube.moveD();
             }
-
-            cube.syncToLists();
         }
 
         return moves;
     }
 
+    private static final List<String> DFS_MOVES = Arrays.asList(
+            "U", "D", "R", "L", "F", "B",
+            "U'", "D'", "R'", "L'", "F'", "B'");
+
+    // make/undo na jednej kostce zamiast deepCopy na kazdym wezle. Po zakonczeniu
+    // (sukces lub porazka) kostka jest przywracana do stanu wejsciowego, bo ruchy
+    // stosuje dopiero prepareForSolvingWhiteCross.
     private List<String> dfs(Cube cube, List<String> path, int depth, int maxDepth) {
         if (isWhiteEdgesPrepared(cube)) {
-            return path;
+            return new ArrayList<>(path);
         }
 
         if (depth >= maxDepth) {
             return null;
         }
 
-        List<String> moves = Arrays.asList("U", "U'", "D", "D'", "L", "L'", "R", "R'", "F", "F'", "B", "B'");
-
-        for (String move : moves) {
+        for (String move : DFS_MOVES) {
             if (!isMoveAllowed(path, move)) {
                 continue;
             }
 
-            Cube newCube = deepCopyCube(cube);
-            newCube.makeMovesFromList(Collections.singletonList(move));
+            char face = move.charAt(0);
+            boolean prime = move.endsWith("'");
 
-            List<String> newPath = new ArrayList<>(path);
-            newPath.add(move);
+            turn(cube, face, prime);
+            path.add(move);
 
-            List<String> result = dfs(newCube, newPath, depth + 1, maxDepth);
+            List<String> result = dfs(cube, path, depth + 1, maxDepth);
+
+            turn(cube, face, !prime); // cofnij ruch
             if (result != null) {
                 return result;
             }
+            path.remove(path.size() - 1);
         }
 
         return null;
@@ -960,25 +1200,5 @@ public class CubeSolver {
             count++;
 
         return Math.min(count, 4);
-    }
-
-    private Cube deepCopyCube(Cube original) {
-        Cube copy = new Cube();
-        copy.setUp(deepCopyFace(original.getUp()));
-        copy.setFront(deepCopyFace(original.getFront()));
-        copy.setBack(deepCopyFace(original.getBack()));
-        copy.setLeft(deepCopyFace(original.getLeft()));
-        copy.setRight(deepCopyFace(original.getRight()));
-        copy.setDown(deepCopyFace(original.getDown()));
-        copy.initArrays();
-        return copy;
-    }
-
-    private List<List<Color>> deepCopyFace(List<List<Color>> face) {
-        List<List<Color>> newFace = new ArrayList<>();
-        for (List<Color> row : face) {
-            newFace.add(new ArrayList<>(row));
-        }
-        return newFace;
     }
 }

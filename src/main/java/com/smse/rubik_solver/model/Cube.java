@@ -4,9 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -16,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Slf4j
 public class Cube {
 
     private List<List<Color>> up;
@@ -106,12 +107,12 @@ public class Cube {
     }
 
     private static final String[] MOVES = {
-            "U", "U'",
-            "D", "D'",
-            "L", "L'",
-            "R", "R'",
-            "F", "F'",
-            "B", "B'"
+            "U", "U'", "U2",
+            "D", "D'", "D2",
+            "L", "L'", "L2",
+            "R", "R'", "R2",
+            "F", "F'", "F2",
+            "B", "B'", "B2"
     };
 
     public boolean isCubeCompleted() {
@@ -171,134 +172,68 @@ public class Cube {
 
     void moveR() {
         rotateClockWise(B);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = W[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = W[i][2];
             W[i][2] = R[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
             R[i][2] = Y[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
             Y[i][2] = O[2 - i][0];
+            O[2 - i][0] = temp;
         }
-        for (int i = 0; i < 3; i++) {
-            O[2 - i][0] = temp[i];
-        }
-        syncToLists();
     }
 
     void moveRprim() {
         rotateAntiClockWise(B);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = W[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = W[i][2];
             W[i][2] = O[2 - i][0];
-        }
-        for (int i = 0; i < 3; i++) {
             O[2 - i][0] = Y[i][2];
-        }
-        for (int i = 0; i < 3; i++) {
             Y[i][2] = R[i][2];
+            R[i][2] = temp;
         }
-        for (int i = 0; i < 3; i++) {
-            R[i][2] = temp[i];
-        }
-        syncToLists();
     }
 
     void moveL() {
         rotateClockWise(G);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = W[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = W[i][0];
             W[i][0] = O[2 - i][2];
-        }
-        for (int i = 0; i < 3; i++) {
             O[2 - i][2] = Y[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
             Y[i][0] = R[i][0];
+            R[i][0] = temp;
         }
-        for (int i = 0; i < 3; i++) {
-            R[i][0] = temp[i];
-        }
-        syncToLists();
     }
 
     void moveLprim() {
         rotateAntiClockWise(G);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = W[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = W[i][0];
             W[i][0] = R[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
             R[i][0] = Y[i][0];
-        }
-        for (int i = 0; i < 3; i++) {
             Y[i][0] = O[2 - i][2];
+            O[2 - i][2] = temp;
         }
-        for (int i = 0; i < 3; i++) {
-            O[2 - i][2] = temp[i];
-        }
-        syncToLists();
     }
 
     void moveU() {
         rotateClockWise(W);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = R[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = R[0][i];
             R[0][i] = B[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
             B[0][i] = O[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
             O[0][i] = G[0][i];
+            G[0][i] = temp;
         }
-        for (int i = 0; i < 3; i++) {
-            G[0][i] = temp[i];
-        }
-        syncToLists();
     }
 
     void moveUprim() {
         rotateAntiClockWise(W);
-        Color[] temp = new Color[3];
-
         for (int i = 0; i < 3; i++) {
-            temp[i] = R[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = R[0][i];
             R[0][i] = G[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
             G[0][i] = O[0][i];
-        }
-        for (int i = 0; i < 3; i++) {
             O[0][i] = B[0][i];
+            B[0][i] = temp;
         }
-        for (int i = 0; i < 3; i++) {
-            B[0][i] = temp[i];
-        }
-        syncToLists();
     }
 
     void moveF() {
@@ -319,7 +254,6 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             B[i][0] = temp[i];
         }
-        syncToLists();
     }
 
     void moveFprim() {
@@ -340,49 +274,28 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             G[i][2] = temp[2 - i];
         }
-        syncToLists();
     }
 
     void moveD() {
         rotateClockWise(Y);
-        Color[] temp = new Color[3];
         for (int i = 0; i < 3; i++) {
-            temp[i] = R[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = R[2][i];
             R[2][i] = G[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
             G[2][i] = O[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
             O[2][i] = B[2][i];
+            B[2][i] = temp;
         }
-        for (int i = 0; i < 3; i++) {
-            B[2][i] = temp[i];
-        }
-        syncToLists();
     }
 
     void moveDprim() {
         rotateAntiClockWise(Y);
-        Color[] temp = new Color[3];
         for (int i = 0; i < 3; i++) {
-            temp[i] = R[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
+            Color temp = R[2][i];
             R[2][i] = B[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
             B[2][i] = O[2][i];
-        }
-        for (int i = 0; i < 3; i++) {
             O[2][i] = G[2][i];
+            G[2][i] = temp;
         }
-        for (int i = 0; i < 3; i++) {
-            G[2][i] = temp[i];
-        }
-        syncToLists();
     }
 
     void moveB() {
@@ -403,7 +316,6 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             G[2 - i][0] = temp[i];
         }
-        syncToLists();
     }
 
     void moveBprim() {
@@ -424,7 +336,6 @@ public class Cube {
         for (int i = 0; i < 3; i++) {
             B[i][2] = temp[i];
         }
-        syncToLists();
     }
 
     void sexyMove() {
@@ -432,6 +343,39 @@ public class Cube {
         moveU();
         moveRprim();
         moveUprim();
+    }
+
+    private static Color[][] rotate180(Color[][] face) {
+        Color[][] r = new Color[3][3];
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                r[i][j] = face[2 - i][2 - j];
+        return r;
+    }
+
+    // Obrot CALEJ kostki wokol osi pionowej (U-D), w kierunku ruchu U.
+    // Gora/dol obracaja sie w miejscu, sciany boczne cykluja bez obrotu wlasnego.
+    void rotateY() {
+        rotateClockWise(W);
+        rotateAntiClockWise(Y);
+        Color[][] t = R;
+        R = B;
+        B = O;
+        O = G;
+        G = t;
+    }
+
+    // Obrot CALEJ kostki wokol osi lewo-prawo (L-R); przod jedzie w dol.
+    // Prawa/lewa obracaja sie w miejscu; pierscien U-F-D-B cykluje (z odbiciami
+    // dla scian przechodzacych przez szew gora-tyl). Kierunki dostrojone testami.
+    void rotateX() {
+        rotateAntiClockWise(B);
+        rotateClockWise(G);
+        Color[][] t = W;
+        W = rotate180(O);
+        O = rotate180(Y);
+        Y = R;
+        R = t;
     }
 
     public void makeMovesFromList(List<String> moves) {
@@ -477,10 +421,35 @@ public class Cube {
                 case "B'":
                     moveBprim();
                     break;
+                case "U2":
+                    moveU();
+                    moveU();
+                    break;
+                case "D2":
+                    moveD();
+                    moveD();
+                    break;
+                case "R2":
+                    moveR();
+                    moveR();
+                    break;
+                case "L2":
+                    moveL();
+                    moveL();
+                    break;
+                case "F2":
+                    moveF();
+                    moveF();
+                    break;
+                case "B2":
+                    moveB();
+                    moveB();
+                    break;
                 default:
-                    System.out.println("Unknown move: " + move);
+                    log.warn("Unknown move: {}", move);
             }
         }
+        syncToLists();
     }
 
     private static List<String> getRandomMoves(int n) {
