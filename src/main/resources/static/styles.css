@@ -119,6 +119,36 @@ header p {
 .color-O { background-color: #f39c12; } /* Orange */
 .color-Y { background-color: #ffe000; } /* Yellow */
 
+/* Obszar logowania (Google) */
+.auth-area {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    color: #fff;
+    min-height: 32px;
+}
+
+.auth-area a,
+.auth-area button {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    padding: 6px 14px;
+    border-radius: 16px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.auth-area a:hover,
+.auth-area button:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
 /* Widok 2D / 3D - przelacznik */
 .view-toggle {
     display: flex;

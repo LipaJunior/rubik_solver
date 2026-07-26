@@ -24,6 +24,9 @@ class RubikCubeSolver {
         
         // Initialize default selected color without showing status message
         this.selectColorSilently('W');
+
+        // Stan logowania (Google)
+        this.loadAuth();
     }
 
     // Cube initialization
@@ -792,6 +795,45 @@ class RubikCubeSolver {
 
         statusElement.textContent = message;
         statusElement.className = `status-message ${type}`;
+    }
+
+    // Logowanie (Google) - pobiera status i renderuje login/logout w naglowku.
+    async loadAuth() {
+        try {
+            const res = await fetch('/api/me');
+            if (!res.ok) return;
+            const data = await res.json();
+            this.isPremium = !!data.premium;
+            this.renderAuth(data);
+        } catch (e) {
+            // brak endpointu (np. lokalnie bez OAuth) - po prostu nic nie pokazuj
+        }
+    }
+
+    renderAuth(data) {
+        const el = document.getElementById('auth-area');
+        if (!el) return;
+        el.innerHTML = '';
+
+        if (data.authenticated) {
+            const span = document.createElement('span');
+            span.textContent = '👤 ' + (data.name || data.email) + (data.premium ? ' ⭐ Premium' : '');
+            const btn = document.createElement('button');
+            btn.textContent = 'Wyloguj';
+            btn.addEventListener('click', () => this.logout());
+            el.appendChild(span);
+            el.appendChild(btn);
+        } else {
+            const a = document.createElement('a');
+            a.href = '/oauth2/authorization/google';
+            a.textContent = 'Zaloguj przez Google';
+            el.appendChild(a);
+        }
+    }
+
+    async logout() {
+        try { await fetch('/logout', { method: 'POST' }); } catch (e) { /* ignore */ }
+        window.location.reload();
     }
 
     // Event listeners configuration
