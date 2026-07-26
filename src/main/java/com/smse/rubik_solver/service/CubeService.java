@@ -38,6 +38,28 @@ public class CubeService {
         return CubeOrientation.translate(canonicalMoves, cube);
     }
 
+    // Wersja premium "krok po kroku": rozwiazanie podzielone na etapy. Kazdy etap
+    // liczony jest w orientacji kanonicznej, a jego ruchy tlumaczone z powrotem na
+    // uklad uzytkownika (tak samo jak w solve()).
+    public List<com.smse.rubik_solver.dto.SolveStage> solveStaged(Cube cube) {
+        CubeSolver solver = new CubeSolver();
+
+        Cube canonical = CubeOrientation.toCanonical(cube);
+        if (canonical == null) {
+            return solver.solveCubeStaged(cube);
+        }
+
+        List<com.smse.rubik_solver.dto.SolveStage> stages = solver.solveCubeStaged(canonical);
+        List<com.smse.rubik_solver.dto.SolveStage> translated = new ArrayList<>();
+        for (com.smse.rubik_solver.dto.SolveStage stage : stages) {
+            translated.add(new com.smse.rubik_solver.dto.SolveStage(
+                    stage.name(),
+                    stage.description(),
+                    CubeOrientation.translate(stage.moves(), cube)));
+        }
+        return translated;
+    }
+
     public Cube applyMoves(Cube cube, List<String> moves) {
         cube.makeMovesFromList(moves);
         cube.syncToLists();

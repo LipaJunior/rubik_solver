@@ -11,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import com.smse.rubik_solver.dto.SolveStage;
 import com.smse.rubik_solver.model.Color;
 import com.smse.rubik_solver.model.Cube;
 
@@ -62,6 +63,30 @@ class RubikSolverApplicationTests {
 
 		cubeService.applyMoves(originalCopy, solutionMoves);
 		assertTrue(originalCopy.isCubeCompleted(), "Cube should be solved after applying the solution moves");
+	}
+
+	@Test
+	@DisplayName("Staged solution (per-stage optimized) still solves the cube")
+	void stagedSolutionSolvesCube() {
+		Cube scrambled = cubeService.createSolvedCube();
+		cubeService.getRandomScramble(scrambled, 20);
+
+		assertTrue(validationService.isCubeValid(scrambled), "Scrambled cube should be valid");
+
+		Cube originalCopy = deepCopyCube(scrambled);
+		List<SolveStage> stages = cubeService.solveStaged(scrambled);
+
+		assertNotNull(stages, "Powinny byc etapy");
+		assertFalse(stages.isEmpty(), "Powinien byc co najmniej jeden etap");
+
+		List<String> allMoves = new ArrayList<>();
+		for (SolveStage s : stages) {
+			allMoves.addAll(s.moves());
+		}
+
+		cubeService.applyMoves(originalCopy, allMoves);
+		assertTrue(originalCopy.isCubeCompleted(),
+				"Sklejone etapy powinny ulozyc kostke (per-etapowa optymalizacja zachowuje poprawnosc)");
 	}
 
 	@Test

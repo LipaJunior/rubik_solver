@@ -188,27 +188,30 @@ class RubikCubeSolver {
         const cube = document.querySelector('.cube-3d');
         if (!scene || !cube) return;
 
-        this.rotX = -30;
-        this.rotY = -45;
+        // Orientacja jako MACIERZ (arcball). Kazdy ruch myszy dokladamy w ukladzie
+        // EKRANU (pre-multiply), a nie jako katy Eulera - dzieki temu nie ma gimbal
+        // locka (kregcenia wokol wlasnej osi, gdy U/D jest z przodu) ani odwracania,
+        // gdy kostka jest obrocona. Obracanie zawsze jest naturalne.
+        this.cubeMatrix = new DOMMatrix().rotate(-30, -45, 0);
         let dragging = false;
         let lastX = 0;
         let lastY = 0;
 
         const apply = () => {
-            // Ustawiamy kat przez zmienne CSS, a nie inline transform - dzieki temu
-            // animacja "spin" po ulozeniu moze uzyc tych samych zmiennych.
-            cube.style.setProperty('--rx', this.rotX + 'deg');
-            cube.style.setProperty('--ry', this.rotY + 'deg');
+            cube.style.transform = this.cubeMatrix.toString();
         };
         apply();
 
         const start = (x, y) => { dragging = true; lastX = x; lastY = y; };
         const move = (x, y) => {
             if (!dragging) return;
-            this.rotY += (x - lastX) * 0.5;
-            this.rotX -= (y - lastY) * 0.5;
+            const dx = x - lastX;
+            const dy = y - lastY;
             lastX = x;
             lastY = y;
+            // Inkrementalny obrot w ukladzie ekranu (pre-multiply).
+            const inc = new DOMMatrix().rotate(-dy * 0.5, dx * 0.5, 0);
+            this.cubeMatrix = inc.multiply(this.cubeMatrix);
             apply();
         };
         const end = () => { dragging = false; };
@@ -629,29 +632,30 @@ class RubikCubeSolver {
         this.showStatus('Congratulations! Cube has been solved!', 'success');
     }
 
-    // Animacja ulozenia dla kostki 3D: pelny obrot kostki o 360 stopni + zielona
-    // poswiata. Obrot uzywa zmiennych --rx/--ry (patrz setup3DRotation), a poswiata
-    // jest na scenie - dzieki temu nie koliduja ze soba. Animacje CSS same sie koncza.
+    // Animacja ulozenia dla kostki 3D: sprezysty "pop" + zielona poswiata na SCENIE.
+    // Nie ruszamy transformacji kostki (ta jest macierza z obracania), wiec nie ma
+    // konfliktu. Czysto CSS, samo sie konczy.
     celebrate3D() {
         const scene = document.querySelector('.cube-3d-scene');
-        const cube = document.querySelector('.cube-3d');
-        if (!cube) return;
+        if (!scene) return;
 
-        cube.classList.add('solved-spin');
-        if (scene) scene.classList.add('solved-glow');
-
-        setTimeout(() => {
-            cube.classList.remove('solved-spin');
-            if (scene) scene.classList.remove('solved-glow');
-        }, 1100);
+        scene.classList.add('solved-celebrate');
+        setTimeout(() => scene.classList.remove('solved-celebrate'), 1200);
     }
 
     // Cube solving
     async solveCube() {
         if (!this.currentCube) return;
 
+        // Widok "etapami" wlaczony -> uzyj sciezki premium. Premium egzekwuje SERWER
+        // (403 jesli brak), wiec nie polegamy na fladze klienta.
+        const stagedToggle = document.getElementById('staged-toggle');
+        if (stagedToggle && stagedToggle.checked) {
+            return this.solveCubeStaged();
+        }
+
         this.showStatus('Solving cube...', 'info');
-        
+
         const response = await this.makeApiCall('solve', 'POST', {
             cube: this.currentCube
         });
@@ -667,6 +671,7 @@ class RubikCubeSolver {
         }
 
         if (response && response.moves) {
+            this.solutionStages = null;
             this.solutionMoves = response.moves;
             this.currentMoveIndex = 0;
             this.sessionId = response.sessionId;
@@ -674,6 +679,35 @@ class RubikCubeSolver {
             this.showStatus(`Solution found: ${this.solutionMoves.length} moves`, 'success');
         } else {
             this.showStatus('Failed to solve cube', 'error');
+        }
+    }
+
+    // Premium: rozwiazanie "krok po kroku" (etapami). Kazdy etap zoptymalizowany
+    // osobno; do odtwarzania sklejamy wszystkie ruchy w jedna liste.
+    async solveCubeStaged() {
+        this.showStatus('Solving (etapami)...', 'info');
+        try {
+            const res = await fetch('/api/solve-stages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cube: this.currentCube })
+            });
+            if (res.status === 403) {
+                this.showStatus('Widok etapami jest funkcja premium', 'error');
+                return;
+            }
+            if (!res.ok) {
+                this.showStatus('Nie udalo sie rozwiazac kostki', 'error');
+                return;
+            }
+            const stages = await res.json();
+            this.solutionStages = stages;
+            this.solutionMoves = stages.flatMap(s => s.moves);
+            this.currentMoveIndex = 0;
+            this.updateSolutionDisplay();
+            this.showStatus(`Rozwiazanie w ${stages.length} etapach (${this.solutionMoves.length} ruchow)`, 'success');
+        } catch (e) {
+            this.showStatus('Nie udalo sie rozwiazac kostki', 'error');
         }
     }
 
@@ -687,24 +721,50 @@ class RubikCubeSolver {
 
         if (this.solutionMoves.length === 0) {
             container.innerHTML = '<span style="color: #6c757d;">No solution</span>';
+            this.solutionStages = null;
             playBtn.disabled = true;
             stepBtn.disabled = true;
             return;
         }
 
-        this.solutionMoves.forEach((move, index) => {
-            const moveElement = document.createElement('span');
-            moveElement.className = 'solution-move';
-            moveElement.textContent = move;
-            
-            if (index < this.currentMoveIndex) {
-                moveElement.classList.add('completed');
-            } else if (index === this.currentMoveIndex) {
-                moveElement.classList.add('current');
-            }
-            
-            container.appendChild(moveElement);
-        });
+        // Kolorowanie pojedynczego ruchu wg globalnego indeksu odtwarzania.
+        const styleMove = (span, globalIndex) => {
+            if (globalIndex < this.currentMoveIndex) span.classList.add('completed');
+            else if (globalIndex === this.currentMoveIndex) span.classList.add('current');
+        };
+
+        if (this.solutionStages) {
+            // Widok etapami (premium).
+            let globalIndex = 0;
+            this.solutionStages.forEach(stage => {
+                const header = document.createElement('div');
+                header.className = 'stage-header';
+                header.textContent = `${stage.name} (${stage.moves.length})`;
+                if (stage.description) header.title = stage.description;
+                container.appendChild(header);
+
+                const row = document.createElement('div');
+                row.className = 'stage-moves';
+                stage.moves.forEach(move => {
+                    const span = document.createElement('span');
+                    span.className = 'solution-move';
+                    span.textContent = move;
+                    styleMove(span, globalIndex);
+                    row.appendChild(span);
+                    globalIndex++;
+                });
+                container.appendChild(row);
+            });
+        } else {
+            // Widok plaski (zoptymalizowana calosc).
+            this.solutionMoves.forEach((move, index) => {
+                const span = document.createElement('span');
+                span.className = 'solution-move';
+                span.textContent = move;
+                styleMove(span, index);
+                container.appendChild(span);
+            });
+        }
 
         playBtn.disabled = false;
         // Krokowanie zablokowane w trakcie odtwarzania (patrz playSolution).
@@ -815,6 +875,10 @@ class RubikCubeSolver {
         if (!el) return;
         el.innerHTML = '';
 
+        // Przelacznik "etapami" widoczny tylko dla premium.
+        const stagedLabel = document.getElementById('staged-toggle-label');
+        if (stagedLabel) stagedLabel.style.display = data.premium ? 'flex' : 'none';
+
         if (data.authenticated) {
             const span = document.createElement('span');
             span.textContent = '👤 ' + (data.name || data.email) + (data.premium ? ' ⭐ Premium' : '');
@@ -907,6 +971,17 @@ class RubikCubeSolver {
         document.getElementById('view-3d-btn').addEventListener('click', () => {
             this.setView('3d');
         });
+
+        // Przelacznik "etapami": jesli jest juz pokazane rozwiazanie, od razu przelicz
+        // w nowym trybie (zeby zmiana switcha natychmiast zmieniala widok).
+        const stagedToggle = document.getElementById('staged-toggle');
+        if (stagedToggle) {
+            stagedToggle.addEventListener('change', () => {
+                if (this.currentCube && this.solutionMoves && this.solutionMoves.length > 0) {
+                    this.solveCube();
+                }
+            });
+        }
 
         // Play solution button (toggluje play/pauza - jeden handler, bez onclick)
         document.getElementById('play-solution-btn').addEventListener('click', () => {

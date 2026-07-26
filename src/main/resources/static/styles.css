@@ -149,6 +149,79 @@ header p {
     background: rgba(255, 255, 255, 0.35);
 }
 
+/* Widok "etapami" (premium) - przelacznik jako switch */
+.switch-row {
+    /* display ustawiany przez JS (none / flex) */
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-weight: bold;
+    color: #2c3e50;
+    cursor: pointer;
+    user-select: none;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    inset: 0;
+    background: #ccc;
+    border-radius: 26px;
+    transition: 0.2s;
+}
+
+.slider::before {
+    content: "";
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.switch input:checked + .slider {
+    background: #9b59b6;
+}
+
+.switch input:checked + .slider::before {
+    transform: translateX(20px);
+}
+
+/* Naglowek etapu - wyrazny, zeby widok "etapami" byl czytelnie inny od plaskiej listy */
+.stage-header {
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    margin: 12px 0 6px;
+    font-size: 0.9rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+
+.stage-moves {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+    padding-left: 4px;
+}
+
 /* Widok 2D / 3D - przelacznik */
 .view-toggle {
     display: flex;
@@ -189,6 +262,9 @@ header p {
     cursor: grab;
     user-select: none;
     touch-action: none; /* obracanie dotykiem nie przewija strony */
+    /* Stabilna warstwa GPU na scenie (nie na preserve-3d kostce) - ma ograniczyc
+       rozwarstwianie 3D przy przewijaniu strony. */
+    will-change: transform;
 }
 
 .cube-3d-scene:active {
@@ -200,11 +276,8 @@ header p {
     width: 150px;
     height: 150px;
     transform-style: preserve-3d;
-    /* Kat obrotu przez zmienne CSS - ustawiane w setup3DRotation; pozwala tez
-       animacji "spin" po ulozeniu uzyc tych samych wartosci. */
-    transform: rotateX(var(--rx, -30deg)) rotateY(var(--ry, -45deg));
-    /* Stabilna warstwa GPU - ogranicza migotanie 3D przy przewijaniu strony. */
-    will-change: transform;
+    /* Domyslny widok - JS nadpisuje inline macierza obrotu (setup3DRotation). */
+    transform: rotateX(-30deg) rotateY(-45deg);
 }
 
 /* Male "cubie" (26 sztuk) skladajace sie na kostke 3D. Kazda ma 6 scianek;
@@ -289,24 +362,18 @@ header p {
     pointer-events: none;
 }
 
-/* Animacja ulozenia w 3D: pelny obrot kostki (spin) + zielona poswiata na scenie.
-   Obie same sie koncza i nie koliduja (spin=transform kostki, glow=filter sceny). */
-.cube-3d.solved-spin {
-    animation: cube3dSpin 1s ease-in-out;
+/* Animacja ulozenia w 3D: sprezysty "pop" + zielona poswiata na SCENIE. Nie rusza
+   transformacji kostki (ta jest macierza obrotu), wiec nie koliduje. Sama sie konczy. */
+.cube-3d-scene.solved-celebrate {
+    animation: cube3dCelebrate 1.2s ease-out;
 }
 
-@keyframes cube3dSpin {
-    from { transform: rotateX(var(--rx, -30deg)) rotateY(var(--ry, -45deg)); }
-    to   { transform: rotateX(var(--rx, -30deg)) rotateY(calc(var(--ry, -45deg) + 360deg)); }
-}
-
-.cube-3d-scene.solved-glow {
-    animation: cube3dGlow 1s ease-out;
-}
-
-@keyframes cube3dGlow {
-    0%, 100% { filter: none; }
-    35%, 65% { filter: drop-shadow(0 0 18px rgba(46, 204, 113, 0.95)); }
+@keyframes cube3dCelebrate {
+    0%   { transform: scale(1);    filter: none; }
+    30%  { transform: scale(1.12); filter: drop-shadow(0 0 18px rgba(46, 204, 113, 0.95)); }
+    55%  { transform: scale(0.97); }
+    70%  { filter: drop-shadow(0 0 18px rgba(46, 204, 113, 0.95)); }
+    100% { transform: scale(1);    filter: none; }
 }
 
 .f-up::after    { content: "U"; }

@@ -2,6 +2,8 @@ package com.smse.rubik_solver.model;
 
 import java.util.*;
 
+import com.smse.rubik_solver.dto.SolveStage;
+
 public class CubeSolver {
 
     // Maksymalna glebokosc (w ruchach polobrotowych) dla skrotu DFS na starcie.
@@ -31,6 +33,65 @@ public class CubeSolver {
         cube.syncToLists();
 
         return collapseDoubles(optimizeMoves(allMoves));
+    }
+
+    // Wersja "krok po kroku" (premium): zwraca rozwiazanie podzielone na etapy,
+    // KAZDY zoptymalizowany osobno. Dzieki temu granice etapow sa czyste i zadien
+    // ruch nie znika na styku, a sklejone etapy nadal ukladaja kostke
+    // (optymalizacja zachowuje efekt kazdego fragmentu).
+    public List<SolveStage> solveCubeStaged(Cube cube) {
+        cube.initArrays();
+
+        List<SolveStage> stages = new ArrayList<>();
+
+        List<String> shortcut = solveWithShortcut(cube);
+        if (shortcut != null) {
+            cube.makeMovesFromList(shortcut);
+            cube.syncToLists();
+            stages.add(new SolveStage("Shortcut",
+                    "The cube was nearly solved - only a few moves were needed.",
+                    collapseDoubles(optimizeMoves(shortcut))));
+            return stages;
+        }
+
+        // Uwaga: podmetody wykonuja sie w kolejnosci ewaluacji argumentow (lewo->prawo),
+        // dokladnie tak jak w solveFirstLayer/Middle/Last - wiec kostka mutuje poprawnie.
+        // Kazdy etap optymalizowany jest OSOBNO (czyste granice, sklejenie uklada kostke).
+        stages.add(stage("Cross",
+                "Four edges of the first layer form a cross.",
+                prepareForSolvingWhiteCross(cube), solveWhiteCross(cube)));
+        stages.add(stage("First layer",
+                "Corners of the first layer - the whole layer is complete.",
+                prepareForSolvingCornersFirstLayer(cube), solveCornersFirstLayer(cube)));
+        stages.add(stage("Second layer",
+                "The four edges of the middle (second) layer.",
+                prepareForSolvingMiddleLayer(cube), solveMiddleLayer1(cube)));
+        stages.add(stage("Edge orientation",
+                "Orient the last-layer edges into a cross.",
+                solveCrossOnLastLayer(cube)));
+        stages.add(stage("Edge permutation",
+                "Move the last-layer edges into their correct spots.",
+                solveLastLayerPart2(cube)));
+        stages.add(stage("Corner permutation",
+                "Move the last-layer corners into their correct spots.",
+                solveLastLayerPart3(cube)));
+        stages.add(stage("Corner orientation",
+                "Twist the last-layer corners - the cube is solved.",
+                rotateEdges(cube)));
+
+        cube.syncToLists();
+        return stages;
+    }
+
+    // Buduje etap z jednego lub kilku podetapow: skleja ich ruchy i optymalizuje
+    // calosc etapu (per-etapowo, wiec granice miedzy etapami pozostaja czyste).
+    @SafeVarargs
+    private SolveStage stage(String name, String description, List<String>... parts) {
+        List<String> combined = new ArrayList<>();
+        for (List<String> part : parts) {
+            combined.addAll(part);
+        }
+        return new SolveStage(name, description, collapseDoubles(optimizeMoves(combined)));
     }
 
     // Ostatni krok: dwa identyczne kolejne obroty tej samej sciany (np. "U" "U"
