@@ -818,10 +818,18 @@ class RubikCubeSolver {
         if (data.authenticated) {
             const span = document.createElement('span');
             span.textContent = '👤 ' + (data.name || data.email) + (data.premium ? ' ⭐ Premium' : '');
+            el.appendChild(span);
+
+            if (!data.premium) {
+                const upgrade = document.createElement('button');
+                upgrade.textContent = '⭐ Upgrade';
+                upgrade.addEventListener('click', () => this.upgrade());
+                el.appendChild(upgrade);
+            }
+
             const btn = document.createElement('button');
             btn.textContent = 'Wyloguj';
             btn.addEventListener('click', () => this.logout());
-            el.appendChild(span);
             el.appendChild(btn);
         } else {
             const a = document.createElement('a');
@@ -834,6 +842,21 @@ class RubikCubeSolver {
     async logout() {
         try { await fetch('/logout', { method: 'POST' }); } catch (e) { /* ignore */ }
         window.location.reload();
+    }
+
+    // Rozpoczyna platnosc: backend tworzy sesje Stripe, przekierowujemy na jej URL.
+    async upgrade() {
+        try {
+            const res = await fetch('/api/checkout', { method: 'POST' });
+            if (!res.ok) {
+                this.showStatus('Nie udalo sie rozpoczac platnosci', 'error');
+                return;
+            }
+            const data = await res.json();
+            window.location = data.url; // strona platnosci Stripe
+        } catch (e) {
+            this.showStatus('Nie udalo sie rozpoczac platnosci', 'error');
+        }
     }
 
     // Event listeners configuration
