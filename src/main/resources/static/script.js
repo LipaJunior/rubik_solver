@@ -1,4 +1,6 @@
 // Rubik's Cube Solver Frontend
+import { Cube3D } from './cube3d.js';
+
 class RubikCubeSolver {
     constructor() {
         this.currentCube = null;
@@ -82,64 +84,25 @@ class RubikCubeSolver {
 
     // Buduje 26 "cubie" (bez srodka) jako male szescianiki. Wywolywane raz;
     // pozniej tylko przemalowujemy scianki (paint3DCubies).
+    // Inicjalizacja sceny 3D (Three.js/WebGL). Sam render jest w cube3d.js.
     build3DCube() {
-        const container = document.getElementById('cube-3d');
+        const container = document.getElementById('cube-3d-scene');
         if (!container) return;
-
-        this.cubies = {};
-        const S = 50; // odstep miedzy srodkami cubie
-
-        for (let x = -1; x <= 1; x++) {
-            for (let y = -1; y <= 1; y++) {
-                for (let z = -1; z <= 1; z++) {
-                    if (x === 0 && y === 0 && z === 0) continue; // rdzen - pomijamy
-
-                    const cubie = document.createElement('div');
-                    cubie.className = 'cubie';
-                    // CSS y jest "w dol", nasze y jest "w gore" -> minus.
-                    cubie.style.transform = `translate3d(${x * S}px, ${-y * S}px, ${z * S}px)`;
-
-                    const faces = {};
-                    ['up', 'down', 'front', 'back', 'right', 'left'].forEach(dir => {
-                        const f = document.createElement('div');
-                        f.className = 'cubie-face cf-' + dir;
-                        cubie.appendChild(f);
-                        faces[dir] = f;
-                    });
-
-                    container.appendChild(cubie);
-                    this.cubies[`${x},${y},${z}`] = { el: cubie, x, y, z, faces };
-                }
-            }
+        try {
+            this.cube3d = new Cube3D(container);
+            // Malowanie klikaniem po kostce 3D (w trybie Paint).
+            this.cube3d.onPick = (faceName, row, col) => this.paintSquare(faceName, row, col);
+            this.cube3d.pickEnabled = this.isPaintMode;
+        } catch (e) {
+            console.error('WebGL 3D init failed:', e);
+            this.cube3d = null;
         }
     }
 
-    // Koloruje zewnetrzne scianki cubie na podstawie currentCube. Mapowanie
-    // (sciana,row,col) -> (x,y,z,kierunek) wyprowadzone z geometrii plaskich scian.
+    // Przekazuje aktualny stan kostki do sceny 3D (koloruje naklejki).
     paint3DCubies() {
-        if (!this.cubies || !this.currentCube) return;
-
-        const cube = this.currentCube;
-        const assign = (x, y, z, dir, faceName, row, col) => {
-            const c = this.cubies[`${x},${y},${z}`];
-            if (!c) return;
-            const f = c.faces[dir];
-            f.className = 'cubie-face cf-' + dir;
-            const color = cube[faceName][row][col];
-            if (color) f.classList.add(this.getColorClass(color));
-            f.onclick = this.isPaintMode ? () => this.paintSquare(faceName, row, col) : null;
-        };
-
-        for (let r = 0; r < 3; r++) {
-            for (let c = 0; c < 3; c++) {
-                assign(c - 1, 1, r - 1, 'up', 'up', r, c);
-                assign(c - 1, -1, 1 - r, 'down', 'down', r, c);
-                assign(c - 1, 1 - r, 1, 'front', 'front', r, c);
-                assign(1 - c, 1 - r, -1, 'back', 'back', r, c);
-                assign(1, 1 - r, 1 - c, 'right', 'right', r, c);
-                assign(-1, 1 - r, c - 1, 'left', 'left', r, c);
-            }
-        }
+        if (!this.cube3d || !this.currentCube) return;
+        this.cube3d.setColors(this.currentCube);
     }
 
     // Wypelnia pojedyncza siatke 3x3 naklejkami danej sciany
@@ -177,64 +140,16 @@ class RubikCubeSolver {
     setView(mode) {
         this.viewMode = mode;
         document.querySelector('.cube-net').style.display = mode === '2d' ? 'grid' : 'none';
-        document.querySelector('.cube-3d-scene').style.display = mode === '3d' ? 'flex' : 'none';
+        document.querySelector('.cube-3d-scene').style.display = mode === '3d' ? 'block' : 'none';
         document.getElementById('view-2d-btn').classList.toggle('active', mode === '2d');
         document.getElementById('view-3d-btn').classList.toggle('active', mode === '3d');
+        // Canvas WebGL musi sie przemierzyc/przerenderowac, gdy staje sie widoczny.
+        if (mode === '3d' && this.cube3d) this.cube3d.onShow();
     }
 
-    // Obracanie kostki 3D - mysz (desktop) i dotyk (telefon/tablet)
-    setup3DRotation() {
-        const scene = document.querySelector('.cube-3d-scene');
-        const cube = document.querySelector('.cube-3d');
-        if (!scene || !cube) return;
-
-        // Orientacja jako MACIERZ (arcball). Kazdy ruch myszy dokladamy w ukladzie
-        // EKRANU (pre-multiply), a nie jako katy Eulera - dzieki temu nie ma gimbal
-        // locka (kregcenia wokol wlasnej osi, gdy U/D jest z przodu) ani odwracania,
-        // gdy kostka jest obrocona. Obracanie zawsze jest naturalne.
-        this.cubeMatrix = new DOMMatrix().rotate(-30, -45, 0);
-        let dragging = false;
-        let lastX = 0;
-        let lastY = 0;
-
-        const apply = () => {
-            cube.style.transform = this.cubeMatrix.toString();
-        };
-        apply();
-
-        const start = (x, y) => { dragging = true; lastX = x; lastY = y; };
-        const move = (x, y) => {
-            if (!dragging) return;
-            const dx = x - lastX;
-            const dy = y - lastY;
-            lastX = x;
-            lastY = y;
-            // Inkrementalny obrot w ukladzie ekranu (pre-multiply).
-            const inc = new DOMMatrix().rotate(-dy * 0.5, dx * 0.5, 0);
-            this.cubeMatrix = inc.multiply(this.cubeMatrix);
-            apply();
-        };
-        const end = () => { dragging = false; };
-
-        // Mysz
-        scene.addEventListener('mousedown', (e) => start(e.clientX, e.clientY));
-        window.addEventListener('mousemove', (e) => move(e.clientX, e.clientY));
-        window.addEventListener('mouseup', end);
-
-        // Dotyk
-        scene.addEventListener('touchstart', (e) => {
-            const t = e.touches[0];
-            start(t.clientX, t.clientY);
-        }, { passive: true });
-        scene.addEventListener('touchmove', (e) => {
-            if (!dragging) return;
-            e.preventDefault(); // nie przewijaj strony podczas obracania kostki
-            const t = e.touches[0];
-            move(t.clientX, t.clientY);
-        }, { passive: false });
-        window.addEventListener('touchend', end);
-        window.addEventListener('touchcancel', end);
-    }
+    // Obracanie kostki 3D jest teraz obslugiwane wewnatrz Cube3D (Three.js) - arcball
+    // na canvasie. Metoda zostaje jako no-op dla zgodnosci z konstruktorem.
+    setup3DRotation() {}
 
     // API communication
     async makeApiCall(endpoint, method = 'POST', data = null) {
@@ -289,7 +204,7 @@ class RubikCubeSolver {
 
         if (response && response.cube) {
             // W widoku 3D pokaz obrot warstwy zanim "dociagniemy" do nowego stanu.
-            if (this.viewMode === '3d' && this.cubies) {
+            if (this.viewMode === '3d' && this.cube3d) {
                 await this.animateLayerTurn(move);
             }
             this.currentCube = response.cube;
@@ -301,51 +216,10 @@ class RubikCubeSolver {
         }
     }
 
-    // Animacja obrotu warstwy w 3D: 9 cubie danej warstwy trafia do "pivota"
-    // obracanego wokol srodka kostki o 90 (lub 180) stopni. Po czasie animacji
-    // cubie wracaja, a makeMove przemalowuje je do docelowego stanu (bez skoku).
+    // Animacja obrotu warstwy w 3D - delegowana do Cube3D (Three.js).
     animateLayerTurn(move) {
-        return new Promise(resolve => {
-            const container = document.getElementById('cube-3d');
-            const face = move.charAt(0);
-
-            // Os obrotu (CSS) i znak dla obrotu "zgodnie z ruchem wskazowek" danej sciany.
-            const spec = {
-                U: { axis: 'Y', deg: -90 }, D: { axis: 'Y', deg: 90 },
-                R: { axis: 'X', deg: 90 },  L: { axis: 'X', deg: -90 },
-                F: { axis: 'Z', deg: 90 },  B: { axis: 'Z', deg: -90 }
-            }[face];
-            const inLayer = {
-                U: c => c.y === 1, D: c => c.y === -1,
-                R: c => c.x === 1, L: c => c.x === -1,
-                F: c => c.z === 1, B: c => c.z === -1
-            }[face];
-
-            if (!container || !spec || !inLayer) { resolve(); return; }
-
-            let deg = spec.deg;
-            if (move.endsWith("'")) deg = -deg;
-            if (move.endsWith('2')) deg = 180;
-
-            const layerCubies = Object.values(this.cubies).filter(inLayer);
-            const pivot = document.createElement('div');
-            pivot.className = 'layer-pivot';
-            container.appendChild(pivot);
-            layerCubies.forEach(c => pivot.appendChild(c.el));
-
-            // wymus reflow, potem odpal przejscie
-            void pivot.offsetWidth;
-            pivot.style.transition = 'transform 0.28s ease-in-out';
-            pivot.style.transform = `rotate${spec.axis}(${deg}deg)`;
-
-            // Czekamy na czas trwania (setTimeout dziala tez, gdy transitionend
-            // nie odpali - np. karta w tle). Potem przywracamy cubie.
-            setTimeout(() => {
-                layerCubies.forEach(c => container.appendChild(c.el));
-                pivot.remove();
-                resolve();
-            }, 300);
-        });
+        if (!this.cube3d) return Promise.resolve();
+        return this.cube3d.animateLayerTurn(move);
     }
 
     // Reczny ruch (przyciski/klawiatura) - serializowany ta sama blokada co Next Step,
@@ -452,7 +326,8 @@ class RubikCubeSolver {
         // Reset interface state
         this.isScramblingPhase = false;
         this.isPaintMode = false;
-        
+        if (this.cube3d) this.cube3d.pickEnabled = false;
+
         // Ukryj sekcję ruchów kostki
         document.getElementById('move-controls').style.display = 'none';
         
@@ -522,6 +397,7 @@ class RubikCubeSolver {
     // Toggle paint mode
     togglePaintMode() {
         this.isPaintMode = !this.isPaintMode;
+        if (this.cube3d) this.cube3d.pickEnabled = this.isPaintMode; // malowanie w 3D
         const paintBtn = document.getElementById('paint-mode-btn');
         const colorPicker = document.getElementById('color-picker');
         const paintInfo = document.getElementById('paint-info');
@@ -636,11 +512,7 @@ class RubikCubeSolver {
     // Nie ruszamy transformacji kostki (ta jest macierza z obracania), wiec nie ma
     // konfliktu. Czysto CSS, samo sie konczy.
     celebrate3D() {
-        const scene = document.querySelector('.cube-3d-scene');
-        if (!scene) return;
-
-        scene.classList.add('solved-celebrate');
-        setTimeout(() => scene.classList.remove('solved-celebrate'), 1200);
+        if (this.cube3d) this.cube3d.celebrate();
     }
 
     // Cube solving

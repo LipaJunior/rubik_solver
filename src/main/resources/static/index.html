@@ -71,18 +71,8 @@
                 </div>
             </div>
 
-            <!-- Cube in 3D (toggled with the 2D net) - budowana z 26 "cubie" w JS -->
-            <div class="cube-3d-scene" style="display: none;">
-                <div class="cube-3d" id="cube-3d">
-                    <!-- cubie dodawane przez JS -->
-                    <div class="face-tag f-up"></div>
-                    <div class="face-tag f-down"></div>
-                    <div class="face-tag f-front"></div>
-                    <div class="face-tag f-back"></div>
-                    <div class="face-tag f-right"></div>
-                    <div class="face-tag f-left"></div>
-                </div>
-            </div>
+            <!-- Widok 3D kostki - render przez Three.js (WebGL). JS wstawia tu <canvas>. -->
+            <div class="cube-3d-scene" id="cube-3d-scene" style="display: none;"></div>
         </div>
 
         <!-- Controls -->
@@ -169,6 +159,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

@@ -252,136 +252,20 @@ header p {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Kostka 3D */
+/* Kostka 3D - kontener na <canvas> renderowany przez Three.js (WebGL). Wiekszy niz
+   sama kostka, zeby przy obrocie "na rog" nie obcinalo naroznikow. */
 .cube-3d-scene {
-    justify-content: center;
-    align-items: center;
-    width: 320px;
-    height: 340px;
-    perspective: 1000px;
+    width: 440px;
+    height: 440px;
+    max-width: 100%;
     cursor: grab;
     user-select: none;
     touch-action: none; /* obracanie dotykiem nie przewija strony */
-    /* Stabilna warstwa GPU na scenie (nie na preserve-3d kostce) - ma ograniczyc
-       rozwarstwianie 3D przy przewijaniu strony. */
-    will-change: transform;
 }
 
 .cube-3d-scene:active {
     cursor: grabbing;
 }
-
-.cube-3d {
-    position: relative;
-    width: 150px;
-    height: 150px;
-    transform-style: preserve-3d;
-    /* Domyslny widok - JS nadpisuje inline macierza obrotu (setup3DRotation). */
-    transform: rotateX(-30deg) rotateY(-45deg);
-}
-
-/* Male "cubie" (26 sztuk) skladajace sie na kostke 3D. Kazda ma 6 scianek;
-   te skierowane na zewnatrz sa kolorowane, wewnetrzne pozostaja ciemne. */
-.cubie {
-    position: absolute;
-    top: 50px;
-    left: 50px;
-    width: 50px;
-    height: 50px;
-    transform-style: preserve-3d;
-}
-
-/* Kazda scianka jest ciut wieksza (52px, offset -1) niz komorka (50px), wiec
-   sciany jednego cubie zachodza w rogach (zamkniete pudelko), a sasiednie cubie
-   sie stykaja - nigdzie nie przeswituje. Ciemna ramka daje szczeline jak w
-   prawdziwej kostce. */
-.cubie-face {
-    position: absolute;
-    top: -1px;
-    left: -1px;
-    width: 52px;
-    height: 52px;
-    box-sizing: border-box;
-    border: 3px solid #0a0a0a;
-    border-radius: 6px;
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
-}
-
-/* Ciemne tlo tylko dla scianek wewnetrznych (bez klasy koloru) - nie nadpisuje
-   kolorow naklejek zewnetrznych. */
-.cubie-face:not([class*="color-"]) {
-    background: #0a0a0a;
-}
-
-/* Obracana warstwa (na czas animacji ruchu) - obrot wokol srodka kostki. */
-.layer-pivot {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 0;
-    transform-style: preserve-3d;
-    transform-origin: 75px 75px 0;
-}
-
-.cf-up    { transform: rotateX(90deg)  translateZ(25px); }
-.cf-down  { transform: rotateX(-90deg) translateZ(25px); }
-.cf-front { transform: translateZ(25px); }
-.cf-back  { transform: rotateY(180deg) translateZ(25px); }
-.cf-right { transform: rotateY(90deg)  translateZ(25px); }
-.cf-left  { transform: rotateY(-90deg) translateZ(25px); }
-
-/* Znaczniki pozycji scian (etykiety) - plaskie nakladki tuz nad powierzchnia. */
-.face-tag {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 150px;
-    height: 150px;
-    pointer-events: none;
-}
-
-.f-front { transform: translateZ(76px); }
-.f-back  { transform: rotateY(180deg) translateZ(76px); }
-.f-right { transform: rotateY(90deg) translateZ(76px); }
-.f-left  { transform: rotateY(-90deg) translateZ(76px); }
-.f-up    { transform: rotateX(90deg) translateZ(76px); }
-.f-down  { transform: rotateX(-90deg) translateZ(76px); }
-
-/* Etykieta pozycji sciany (U/D/R/L/F/B) - obraca sie razem z kostka, wiec
-   zawsze wiadomo, ktora sciana jest ktora, niezaleznie od obrotu kamery. */
-.face-tag::after {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-weight: 800;
-    font-size: 1.5rem;
-    color: rgba(20, 20, 20, 0.55);
-    text-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
-    pointer-events: none;
-}
-
-/* Animacja ulozenia w 3D: sprezysty "pop" + zielona poswiata na SCENIE. Nie rusza
-   transformacji kostki (ta jest macierza obrotu), wiec nie koliduje. Sama sie konczy. */
-.cube-3d-scene.solved-celebrate {
-    animation: cube3dCelebrate 1.2s ease-out;
-}
-
-@keyframes cube3dCelebrate {
-    0%   { transform: scale(1);    filter: none; }
-    30%  { transform: scale(1.12); filter: drop-shadow(0 0 18px rgba(46, 204, 113, 0.95)); }
-    55%  { transform: scale(0.97); }
-    70%  { filter: drop-shadow(0 0 18px rgba(46, 204, 113, 0.95)); }
-    100% { transform: scale(1);    filter: none; }
-}
-
-.f-up::after    { content: "U"; }
-.f-down::after  { content: "D"; }
-.f-front::after { content: "F"; }
-.f-back::after  { content: "B"; }
-.f-right::after { content: "R"; }
-.f-left::after  { content: "L"; }
 
 /* Controls */
 .controls {
