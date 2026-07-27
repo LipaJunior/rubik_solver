@@ -11,6 +11,7 @@
         <header>
             <h1>🧩 Rubik's Cube Solver</h1>
             <p>Interactive Rubik's Cube Solver</p>
+            <div id="auth-area" class="auth-area"></div>
         </header>
 
         <div class="view-toggle">
@@ -70,18 +71,8 @@
                 </div>
             </div>
 
-            <!-- Cube in 3D (toggled with the 2D net) - budowana z 26 "cubie" w JS -->
-            <div class="cube-3d-scene" style="display: none;">
-                <div class="cube-3d" id="cube-3d">
-                    <!-- cubie dodawane przez JS -->
-                    <div class="face-tag f-up"></div>
-                    <div class="face-tag f-down"></div>
-                    <div class="face-tag f-front"></div>
-                    <div class="face-tag f-back"></div>
-                    <div class="face-tag f-right"></div>
-                    <div class="face-tag f-left"></div>
-                </div>
-            </div>
+            <!-- Widok 3D kostki - render przez Three.js (WebGL). JS wstawia tu <canvas>. -->
+            <div class="cube-3d-scene" id="cube-3d-scene" style="display: none;"></div>
         </div>
 
         <!-- Controls -->
@@ -144,6 +135,13 @@
 
             <div class="control-group">
                 <h3>Solving</h3>
+                <label id="staged-toggle-label" class="switch-row" style="display: none;">
+                    <span class="switch-text">Pokaż etapami ⭐</span>
+                    <span class="switch">
+                        <input type="checkbox" id="staged-toggle">
+                        <span class="slider"></span>
+                    </span>
+                </label>
                 <div id="solution-container" class="solution-container">
                     <div id="solution-moves" class="solution-moves"></div>
                     <div class="solution-controls">
@@ -161,6 +159,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
