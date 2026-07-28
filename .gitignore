@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Lokalne sekrety (NIE commitowac) ###
+# Prawdziwe wartosci (haslo do bazy itp.) trzymamy tylko lokalnie.
+# Do repo idzie wylacznie szablon .env.local.example.
+.env.local
+.env

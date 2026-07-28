@@ -3,8 +3,14 @@
   "configurations": [
     {
       "name": "rubik-solver",
+      "runtimeExecutable": "./mvnw",
+      "runtimeArgs": ["spring-boot:run"],
+      "port": 8080
+    },
+    {
+      "name": "rubik-solver-win",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "C:\\Users\\kamil\\Desktop\\rubik_solver\\mvnw.cmd", "spring-boot:run"],
+      "runtimeArgs": ["/c", "mvnw.cmd", "spring-boot:run"],
       "port": 8080
     }
   ]
