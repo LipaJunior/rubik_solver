@@ -1,0 +1,27 @@
+name: CI
+
+# Buduje i testuje aplikacje przy kazdym PR do main oraz po wejsciu na main.
+# Dzieki temu main zawsze przechodzi testy - nic zepsutego tam nie wejdzie.
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # Testy jada na domyslnej bazie H2 in-memory (bez sekretow) - CI nie potrzebuje
+      # Neona ani kluczy Google/Stripe, zeby zbudowac i przetestowac kod.
+      - name: Build and test
+        run: ./mvnw -B verify
