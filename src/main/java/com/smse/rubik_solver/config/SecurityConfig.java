@@ -27,8 +27,11 @@ public class SecurityConfig {
                         .anyRequest().permitAll())
                 .oauth2Login(oauth -> oauth.successHandler(successHandler))
                 .logout(logout -> logout.logoutSuccessUrl("/").permitAll())
-                // CSRF wylaczony: brak wrazliwych akcji formularzowych, a front uzywa fetch/JSON.
-                // Do rozwazenia ponownie, gdy dojda wrazliwe akcje zmieniajace stan uzytkownika.
+                // CSRF wylaczony swiadomie: ochrone przed CSRF daje ciasteczko sesji z
+                // SameSite=Lax (patrz application.properties) - przegladarka nie wysyla go
+                // przy cross-site POST, wiec nikt nie wywola /api/checkout w imieniu usera.
+                // Webhook Stripe jest publiczny, ale chroniony podpisem. Gdyby doszly akcje
+                // formularzowe zmieniajace stan konta, rozwazyc wlaczenie tokenow CSRF.
                 .csrf(csrf -> csrf.disable());
         return http.build();
     }
